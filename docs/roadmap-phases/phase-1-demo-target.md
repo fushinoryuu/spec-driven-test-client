@@ -42,7 +42,7 @@ Bearer tokens are not part of the baseline. If the Phase 3 stretch goal is ever 
 
 | Spec file | Facade name | Endpoint groups (tags) | Notable operations |
 |---|---|---|---|
-| `customers-service.yaml` | `customersService` | `customers`, `addresses`, `version` | `createCustomer`, `getCustomer`, `listCustomers`, `updateCustomer`, `deleteCustomer`, `addAddress`, `listAddresses`, `getReadiness` |
+| `customers-service.yaml` | `customersService` | `customers`, `addresses`, `version` | `createCustomer`, `getCustomer`, `listCustomers`, `updateCustomer`, `deleteCustomer`, `addAddress`, `listAddresses`, `updateAddress`, `deleteAddress`, `getReadiness` |
 | `orders-service.yaml` | `ordersService` | `orders`, `products`, `version` | `listProducts`, `createOrder` (needs an `Idempotency-Key` header), `getOrder`, `listOrders`, `cancelOrder` |
 | `shipping-service.yaml` | `shippingService` | `shipments`, `simulation`, `version` | `getShipment`, `listShipments`, `advanceShipment` (admin only) |
 
@@ -94,7 +94,7 @@ Before the Phase 5 sync script exists:
 `scripts/check-stage.ts` (also reused by Phase 4 global setup):
 
 - [ ] For each service in the stage manifest, call `GET /health` and `GET /version`, compare the deployed spec version with the spec version the library was generated from, and check that the reported stage matches the selected environment. Both routes are open and never touch the database.
-- [ ] With `--warmup` (off by default), call the customers `getReadiness` operation with a long timeout and report how long it took. This route needs a key and touches the database, so it wakes a paused Aurora cluster, which typically takes about 15 seconds and 30 seconds or more after a long pause. While the database resumes the route can return 503 with a retry hint, or the API gateway can time out first, so the warm-up retries within a total time limit. Never run it on a schedule, because that keeps the cluster awake.
+- [ ] With `--warmup` (off by default), call the customers `getReadiness` operation with a long timeout and report how long it took. This route needs a key and touches the database, so it wakes a paused Aurora cluster, which typically takes about 15 seconds and 30 seconds or more after a long pause. While the database resumes the route can return 503 with a retry hint, or the API gateway can time out first, so the warm-up retries on 503 and 504 within an overall time budget (see Phase 3, Warm-up). Never run it on a schedule, because that keeps the cluster awake.
 - [ ] Print a table (service, health, deployed version, expected version, stage, and the readiness time when `--warmup` is used) and exit non-zero on any failure.
 - [ ] Never print key values.
 

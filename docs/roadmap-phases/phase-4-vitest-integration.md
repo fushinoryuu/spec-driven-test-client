@@ -48,7 +48,7 @@ Make writing an integration test feel easy and safe. This phase adds the vitest 
 Use vitest's `test.extend` to export a `test` function that tests import instead of the plain one.
 
 - [ ] `api`: the configured client for the current environment.
-- [ ] `uid`: a unique id generator (run id plus counter) so parallel runs never collide.
+- [ ] `uid`: a unique id generator (run id plus counter) so parallel runs never collide. Customer emails must come from it too. The email unique index covers deleted rows, so a deleted customer still holds its email, and deleting a customer never frees it.
 - [ ] `cleanup`: a registry where tests register undo actions as they create data. Actions run after each test, in reverse order, even when the test fails, and failures during cleanup are reported without hiding the original failure.
 - [ ] `ctx`: run metadata (environment, run id, correlation id prefix) for log correlation.
 - [ ] Document the pattern: create through the API, register cleanup immediately, then assert.
@@ -73,8 +73,8 @@ Write these against the three Storefront services. They should read like documen
 - [ ] **Customers lifecycle:** create a customer, add an address, fetch, update, list and find, delete, confirm it is gone (404, because customers are soft-deleted and `getCustomer` returns 404 for a deleted customer).
 - [ ] **Negative cases:** invalid body returns 400 with the shared error shape, missing id returns 404, duplicate customer email returns 409, and a client-supplied price on an order is ignored or rejected.
 - [ ] **Pagination:** create several customers, page through, assert ordering and that no customer is missed or repeated.
-- [ ] **Auth:** a protected call without an API key is rejected with the shared error shape and succeeds with the `tests` key. The shipping simulation endpoint rejects the `tests` key and accepts the `admin` key (where the route is enabled: the backend still has to confirm whether it exists in `prod`).
-- [ ] **Cleanup proof:** after the suite, no active test customers remain. Deleted customers stay in the database with a `deleted` status, so the check relies on the customer list hiding them, which the backend has to confirm. Orders and shipments have no delete operation, so they are tagged with the run id and cleared by the backend's reset script or expire on their own.
+- [ ] **Auth:** a protected call without an API key is rejected with the shared error shape and succeeds with the `tests` key. The shipping simulation endpoint rejects the `tests` key and accepts the `admin` key (admin tests run on `dev` only. The backend proposes keeping the route in `prod`, but the admin tests treat `prod` as unavailable).
+- [ ] **Cleanup proof:** after the suite, every customer the tests created is gone: `getCustomer` returns 404 for each tracked id. Deleted customers stay in the database with a `deleted` status, so the check uses the tracked ids and does not rely on the customer list. Whether the list hides deleted customers is not settled yet (the backend proposes that it does). Orders and shipments have no delete operation, so they are tagged with the run id and cleared by the backend's reset script or expire on their own.
 - [ ] **Cross-service flow:** create a customer, place an order with an idempotency key, poll until the order is `CONFIRMED`, advance the shipment with the admin client, and poll until the order is `SHIPPED` and then `DELIVERED`. Use `expectEventually`, never fixed sleeps. Polling timeouts come from the per-environment config, because the simulated carrier takes seconds in `dev` and minutes in `prod`.
 - [ ] **Idempotency:** repeat `createOrder` with the same key and assert that only one order exists.
 - [ ] Stretch: **Token refresh.** Against the mock OAuth2 server and a stub API, set a short token lifetime, make calls across the expiry, and assert that every call succeeds and that only the expected number of token requests were made.
