@@ -27,13 +27,13 @@ Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging
 
 | Phase | Doc | Outcome |
 |---|---|---|
-| 0 | [Foundations and decisions](docs/phase-0-foundations.md) | Repo, tooling, decision records, generator spike |
-| 1 | [Demo target](docs/phase-1-demo-target.md) | Consume the three Storefront specs, stage manifest, and API keys |
-| 2 | [Generation pipeline](docs/phase-2-generation-pipeline.md) | One command turns specs into typed clients |
-| 3 | [Client facade and configuration](docs/phase-3-client-facade.md) | `apitest.service.group.operation()` plus environments, auth, safety |
-| 4 | [Test authoring with vitest](docs/phase-4-vitest-integration.md) | Fixtures, cleanup, example integration tests |
-| 5 | [Spec-change workflow, CI, release](docs/phase-5-spec-change-and-release.md) | Spec change to published version, automated |
-| 6 | [Polish](docs/phase-6-polish.md) | Docs, demo, resume material |
+| 0 | [Foundations and decisions](roadmap-phases/phase-0-foundations.md) | Repo, tooling, decision records, generator spike |
+| 1 | [Demo target](roadmap-phases/phase-1-demo-target.md) | Consume the three Storefront specs, stage manifest, and API keys |
+| 2 | [Generation pipeline](roadmap-phases/phase-2-generation-pipeline.md) | One command turns specs into typed clients |
+| 3 | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md) | `apitest.service.group.operation()` plus environments, auth, safety |
+| 4 | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md) | Fixtures, cleanup, example integration tests |
+| 5 | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to published version, automated |
+| 6 | [Polish](roadmap-phases/phase-6-polish.md) | Docs, demo, resume material |
 
 ## Checklist
 
