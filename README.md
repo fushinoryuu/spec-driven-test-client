@@ -4,6 +4,11 @@ Generates typed clients for backend services from their OpenAPI specs, so integr
 
 The project is at the start of its roadmap. See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan and the phases.
 
+## Project rules and decisions
+
+- [docs/clean-room.md](docs/clean-room.md): what this project may and may not draw on. Read it before contributing.
+- [docs/decisions/](docs/decisions/): short decision records for the choices that shape the library.
+
 ## Prerequisites
 
 - Node.js, at the version in [.nvmrc](.nvmrc) (`nvm use` or `fnm use` picks it up)
