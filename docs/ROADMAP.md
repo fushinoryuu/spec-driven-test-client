@@ -59,7 +59,7 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 - [ ] Specs pulled in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
 - [ ] Stage readiness check across the three services, with an opt-in Aurora warm-up
-- [ ] Optional local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
+- [ ] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
 - [ ] Backend's planned v1.1.0 (non-breaking) and v2.0.0 (breaking) spec changes mapped to their effect on generated clients
 
 ### Phase 2: Generation pipeline

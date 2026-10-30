@@ -20,7 +20,7 @@ The backend publishes draft specs (v0.1.0, its Phase 0.5) before anything is dep
 | Spec source record (backend ref, spec version, and pull date for each spec) | `specs/sources.json` |
 | Contract checklist with gaps | `docs/backend-contract.md` |
 | Stage readiness check | `scripts/check-stage.ts` |
-| Optional local mocks | `mock/` |
+| Local mocks | `mock/` |
 | Effect of planned spec changes | `docs/demo-script.md` (section per change) |
 
 ## What the library needs from the backend
@@ -55,7 +55,7 @@ await apitest.shippingService.shipments.getShipment({ ... });
 await apitest.ordersService.version.getVersion();
 ```
 
-The `version` group also holds the health route and, on customers, the readiness operation. The backend's tag lists contain no separate health tag, so these calls read `apitest.ordersService.version.getHealth()` and `apitest.customersService.version.getReadiness()`. The operationIds `getHealth` and `getVersion` are assumed until the drafts confirm them. Every call returns `{ status, headers, data }` (Phase 3).
+The `version` group also holds the health route and, on customers, the readiness operation. The backend's tag lists contain no separate health tag, so these calls read `apitest.ordersService.version.getHealth()` and `apitest.customersService.version.getReadiness()`. The operationIds `getHealth`, `getVersion` and `getReadiness` are the backend's proposal, assumed until the drafts confirm them. Every call returns `{ status, headers, data }` (Phase 3).
 
 ## What makes these specs a good test for the generator
 
@@ -88,11 +88,13 @@ Before the Phase 5 sync script exists:
 
 - [ ] Using the Phase 0 spike setup, generate all three and read the output for the items in the checklist above.
 - [ ] Sort every problem into: a spec issue (raise it in the backend project), a generator option (record it in decision record 0002), a facade concern (note it for Phase 3), or, as a last resort, a template override (only if the Phase 2 decision rule justifies it).
+- [ ] Check the assumptions these docs make about the drafts against the real drafts, and update the affected docs wherever a draft differs: the operationIds `getHealth`, `getVersion` and `getReadiness`, the `version` tag holding the health, version and readiness routes, whether `listCustomers` hides deleted customers, and a `Retry-After` header in seconds on the `getReadiness` 503.
 
 ### 4. Stage readiness check
 
 `scripts/check-stage.ts` (also reused by Phase 4 global setup):
 
+- [ ] Until the backend publishes its stage manifest (its Phase 5), read the service base URLs from a minimal static `config/environments.ts` that holds only base URLs per stage. Phase 3 extends that file with the environment flags and auth settings.
 - [ ] For each service in the stage manifest, call `GET /health` and `GET /version`, compare the deployed spec version with the spec version the library was generated from, and check that the reported stage matches the selected environment. Both routes are open and never touch the database.
 - [ ] With `--warmup` (off by default), call the customers `getReadiness` operation with a long timeout and report how long it took. This route needs a key and touches the database, so it wakes a paused Aurora cluster, which typically takes about 15 seconds and 30 seconds or more after a long pause. While the database resumes the route can return 503 with a retry hint, or the API gateway can time out first, so the warm-up retries on 503 and 504 within an overall time budget (see Phase 3, Warm-up). Never run it on a schedule, because that keeps the cluster awake.
 - [ ] Print a table (service, health, deployed version, expected version, stage, and the readiness time when `--warmup` is used) and exit non-zero on any failure.
@@ -106,7 +108,7 @@ Before the Phase 5 sync script exists:
 - [ ] Only `tests` is needed for most work. Ask for `admin` only when working on the simulation endpoint tests.
 - [ ] Link to the backend's key rotation runbook.
 
-### 6. Optional local mocks
+### 6. Local mocks
 
 - [ ] A mock server per service, driven by its spec, so generator, facade, and configuration work does not depend on AWS being up.
 - [ ] Know the limits. A spec-driven mock returns example responses but has no cross-service behavior, so an order never becomes `CONFIRMED`. Use mocks for generator smoke tests, facade and config tests, and demos without AWS. The cross-service flow tests need the real stack.

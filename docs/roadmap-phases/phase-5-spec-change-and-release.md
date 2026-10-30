@@ -114,3 +114,4 @@ Spec changes are not the only reason generated code changes. Bumping the pinned 
 - **Publishing something private.** Check the tarball contents. Use a dry run first.
 - **Credential handling.** CI secrets for the integration job must be scoped to the stages and caller types each job needs: the `prod` `tests` key for scheduled smoke runs, and never the `services` key. API keys are shared secrets.
 - **Version confusion.** If package versions and spec versions diverge, the changelog is the bridge, so keep it accurate.
+- **Cross-repo wiring is undecided.** Whether the backend's deploy-test-destroy flow runs this library's tests, or this library's `full` project is triggered some other way, is undecided on both sides. The backend's own end-to-end tests use plain `fetch` and deliberately do not depend on this library. Revisit once the library has runnable tests.

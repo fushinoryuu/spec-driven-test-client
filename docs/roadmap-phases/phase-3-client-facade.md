@@ -14,7 +14,7 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 | Deliverable | Location |
 |---|---|
 | Facade and service registry | `src/client/facade.ts`, `src/client/services.ts` |
-| Environment config | `src/client/config.ts`, `config/environments.ts` |
+| Environment config | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
 | Auth providers | `src/client/auth.ts` |
 | Fetch wrapper (middleware) | `src/client/transport.ts` |
 | Call normalization and response type | `src/client/response.ts` |
@@ -151,7 +151,7 @@ Generated clients usually throw on non-2xx responses. This library does not (dec
 
 ### Warm-up for cold dependencies
 
-The customers service uses an Aurora Serverless v2 database that can pause when idle. The first request after a pause typically takes about 15 seconds, and 30 seconds or more after a long idle period. The API Gateway integration timeout is 29 seconds by default, and API Gateway returns a 504 when it is exceeded, so a long resume could surface as a 504. The backend's intended design is for the readiness Lambda to give up before the gateway does and return a 503 in the shared error shape, so the library treats both 503 and 504 as "retry".
+The customers service uses an Aurora Serverless v2 database that can pause when idle. The first request after a pause typically takes about 15 seconds, and 30 seconds or more after a long idle period. The API Gateway integration timeout is 29 seconds by default, and API Gateway returns a 504 when it is exceeded, so a long resume could surface as a 504. The backend's intended design is for the readiness Lambda to give up before the gateway does and return a 503 in the shared error shape, so the library treats both 503 and 504 as "retry". What API Gateway returns if the readiness Lambda times out before the gateway does is unverified, and the retry rule handles it the same way. The backend has not settled whether `prod` may pause at all (its ADR 0007), so the library always plans for a cold first call.
 
 - [ ] An optional per-service `warmup` hook (a call to a readiness operation: customers `getReadiness`, which needs a key and touches the database) that global setup runs before the `full` project, never before `smoke`. It retries on 503 and 504 within an overall time budget of roughly 60 to 90 seconds (a budget, not an attempt count, to cover a resume of 30 seconds or more), honoring a `Retry-After` header in seconds when present. The backend proposes that header but has not put it in the spec yet, so do not depend on it. A cold database then reads as a slow start and not a failure. This is the only place the library retries on those statuses by default.
 - [ ] Per-service default timeouts, with a longer allowance for the first call to customers.
