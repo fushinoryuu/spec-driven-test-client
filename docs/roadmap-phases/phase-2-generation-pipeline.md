@@ -118,8 +118,6 @@ If you do need an override:
 
 **Upgrade procedure** (document it in `docs/generation-pipeline.md`): when you bump the generator version, export the default templates for both the old and new versions, diff them, merge the relevant changes into each override, regenerate, and review the generated diff in its own pull request.
 
-**If your old project had templates:** compare the filenames with the defaults to see what was overridden. Treat the contents as work product and do not copy them. Write fresh overrides only if the rule above says you need them.
-
 ## Acceptance criteria
 
 - `npm run generate` produces typed clients for all three Storefront specs, with no manual steps and no name collisions.
