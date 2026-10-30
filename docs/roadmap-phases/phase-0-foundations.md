@@ -16,7 +16,6 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 | Repo skeleton | repo root |
 | Decision records | `docs/decisions/NNNN-title.md` |
 | Generator spike notes | `docs/decisions/0002-generator.md` |
-| Clean-room rules | `docs/clean-room.md` |
 | README stub with prerequisites | `README.md` |
 
 ## Target repo layout
@@ -57,16 +56,7 @@ The demo backend is the Storefront backend project (see the backend roadmap), an
 - [ ] ESLint and a formatter, with generated code excluded from linting but included in typechecking.
 - [ ] A `.gitignore` that does not ignore `src/generated/` (see decision on committed output below).
 
-### 2. Clean-room rules
-
-Write `docs/clean-room.md` and follow it:
-
-- [ ] Recreate behavior and design ideas only. No copied code, file names, package names, internal URLs, service names, or specs from work.
-- [ ] All examples, specs, and test data are invented for the Storefront demo.
-- [ ] Do not mention the employer or internal systems in code, commits, or docs.
-- [ ] Check the employer's IP and outside-work policy before making the repo public.
-
-### 3. Decision records
+### 2. Decision records
 
 Each record: context, options considered, decision, consequences. Keep them to a page.
 
@@ -85,7 +75,7 @@ Each record: context, options considered, decision, consequences. Keep them to a
 | 0011 | Naming across services | Decided in Phase 2: the three specs share an error schema name and a `version` tag, which collide in generated code | Phase 2 |
 | 0012 | Package version vs spec versions | Decided in Phase 5: independent semver, with spec versions listed in the changelog | Phase 5 |
 
-### 4. Generator spike
+### 3. Generator spike
 
 Goal: choose the generator and generator options with evidence. Time-box to a day or two.
 
@@ -100,7 +90,7 @@ Goal: choose the generator and generator options with evidence. Time-box to a da
 - [ ] Confirm the options that matter for the leading candidates and record the chosen values. For `typescript-fetch`, the documented options include `useSingleRequestParameter` (default true), `withInterfaces`, `supportsES6`, `importFileExtension` (set `.js` or `.mjs` for ES modules), `npmName`, `npmVersion`, and `withoutRuntimeChecks`. Check whether `typescript-axios` offers the same single-request-object option, and what its equivalents are for the rest.
 - [ ] Write the decision. No generator is the default. Prefer the candidate that meets the hard requirements with the least facade code, and weigh output layout, error and auth hooks, determinism, and install friction (OpenAPI Generator needs Java, the TypeScript-native generators do not). Record the alternatives and why they lost.
 
-### 5. Java requirement
+### 4. Java requirement
 
 This section applies only if the spike chooses OpenAPI Generator. It is a Java jar, and the npm wrapper downloads and runs it. The documented minimum is Java 11.
 
@@ -112,7 +102,6 @@ This section applies only if the spike chooses OpenAPI Generator. It is a Java j
 
 - `npm test`, lint, and typecheck all pass on a fresh clone.
 - Decision records 0001 to 0008 and 0010 exist, with the generator record backed by spike notes. Records 0009 (only if the stretch goal is pursued), 0011 (Phase 2) and 0012 (Phase 5) are written in their own phases.
-- Clean-room rules are written and linked from the README.
 - If OpenAPI Generator was chosen, anyone can tell from the README which Java or Docker option to use.
 
 ## Risks and notes

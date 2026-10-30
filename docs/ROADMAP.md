@@ -30,7 +30,7 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 ## Assumptions
 
 - The specs are **OpenAPI 3.0.3** specs, the version the backend uses. The generator is chosen by the Phase 0 spike, with no default. OpenAPI Generator (the Java jar, usually run through the `@openapitools/openapi-generator-cli` npm wrapper) is one candidate, alongside TypeScript-native generators.
-- The portfolio version is a clean rewrite from behavior and design ideas, with its own name and examples. No code, internal names, or internal specs from work. Check your employer's IP policy before publishing.
+- The project has its own name, examples and specs, all invented for the Storefront demo.
 - The demo backend is the Storefront backend ([storefront-backend](https://github.com/fushinoryuu/storefront-backend), see its roadmap): three AWS microservices built with CDK, customers on Aurora, orders on DynamoDB, and shipping driven by events. Each publishes an OpenAPI 3.0.3 spec, and the three specs are the library's input. It lives in its own project and its API uses API Gateway API keys. It has two stages: `dev`, which each of its pull request runs deploys and destroys, and `prod`, which stays up. Its draft specs (v0.1.0) come first, and each spec reaches v1.0.0 when its service ships.
 
 ## Phases
@@ -49,7 +49,6 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 
 ### Phase 0: Foundations and decisions
 - [ ] Repo skeleton, TypeScript strict, ESM, lint and format
-- [ ] Clean-room rules written down
 - [ ] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target, call shape
 - [ ] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison), with no default generator
 - [ ] Java requirement handled if OpenAPI Generator is chosen (local, CI, and Docker fallback)

@@ -69,8 +69,7 @@ An honest limitations page builds credibility.
 ### 5. Repo hygiene
 
 - [ ] Secrets scan across files and history.
-- [ ] Confirm that nothing from work appears anywhere: names, URLs, specs, code structure that is distinctive, commit messages.
-- [ ] Re-read `docs/clean-room.md` and the employer's policy one more time before making the repo public.
+- [ ] Check names, URLs, specs and commit messages for anything that does not belong to this project or the Storefront demo.
 - [ ] Remove dead code, stale TODOs, and unused scripts.
 - [ ] License file and repository description and topics.
 - [ ] Verify a fresh clone follows the README without help.
@@ -101,7 +100,7 @@ Prepare short answers for:
 
 - A stranger can read the README, watch the demo, and run the smoke tests in under ten minutes.
 - Every claim in the README and on the resume maps to something in the repo: a test, a measurement, or a script.
-- The repo contains no work-specific content and no secrets.
+- The repo contains no secrets and nothing unrelated to this project or the Storefront demo.
 
 ## Risks and notes
 

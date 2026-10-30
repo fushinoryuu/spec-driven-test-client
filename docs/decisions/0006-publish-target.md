@@ -20,7 +20,7 @@ Until then:
 
 - `package.json` keeps `"private": true`, so nothing can be published by accident.
 - The library has no runtime need for a registry. The example consumer (Phase 5) installs from a packed tarball in CI either way.
-- Before the first publish, run the clean-room check in [clean-room.md](../clean-room.md) and inspect the tarball with a dry run.
+- Before the first publish, inspect the tarball with a dry run.
 
 ## Consequences
 
