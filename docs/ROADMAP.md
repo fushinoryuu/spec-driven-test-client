@@ -7,21 +7,31 @@ A TypeScript library, run with vitest, that generates a typed client for every b
 ## The target experience
 
 ```ts
-import { apitest } from 'apitest-kit';
+import { expect } from 'vitest';
+import { apitest, expectStatus } from 'apitest-kit';
 
 // library . service . endpoint group (spec tag) . operation (operationId)
+// Every call takes one request object and returns { status, headers, data }.
+// HTTP error statuses do not throw, so a negative test asserts on the status.
 const version = await apitest.ordersService.version.getVersion();
-const customer = await apitest.customersService.customers.createCustomer({ firstName: 'Jane' });
-const order = await apitest.ordersService.orders.createOrder({ customerId: customer.id });
+expect(version.status).toBe(200);
+
+const created = await apitest.customersService.customers.createCustomer({
+  createCustomerRequest: { firstName: 'Jane' }, // field names come from the generated request type
+});
+const customer = expectStatus(201, created); // the typed body, or a failure naming the status and correlation id
+
+const missing = await apitest.ordersService.orders.getOrder({ orderId: 'does-not-exist' });
+expect(missing.status).toBe(404);
 ```
 
-Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging`. Protected environments (such as prod) are read-only unless explicitly unlocked. The services authenticate with API keys sent in the `x-api-key` header, chosen per caller type (`tests` by default, `admin` only where a test needs it). A stretch goal adds automatic bearer token acquisition and refresh, for services that use tokens instead of keys.
+Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. The backend's `dev` stage exists only while one of its pull request runs is deployed, and `prod` is flagged protected, so it is read-only (smoke tests only) unless explicitly unlocked. The services authenticate with API keys sent in the `x-api-key` header, chosen per caller type (`tests` by default, `admin` only where a test needs it). A stretch goal adds automatic bearer token acquisition and refresh, for services that use tokens instead of keys.
 
-## Assumptions to confirm
+## Assumptions
 
-- "OpenAI specs" and "OpenAI auto generator" are read as **OpenAPI** specs and **OpenAPI Generator** (the Java jar, usually run through the `@openapitools/openapi-generator-cli` npm wrapper). If the original used something else, Phase 0 records the change.
+- The specs are **OpenAPI 3.0.3** specs, the version the backend uses. The generator is chosen by the Phase 0 spike, with no default. OpenAPI Generator (the Java jar, usually run through the `@openapitools/openapi-generator-cli` npm wrapper) is one candidate, alongside TypeScript-native generators.
 - The portfolio version is a clean rewrite from behavior and design ideas, with its own name and examples. No code, internal names, or internal specs from work. Check your employer's IP policy before publishing.
-- The demo backend is the Storefront backend (see the backend roadmap): three AWS microservices built with CDK, customers on Aurora, orders on DynamoDB, and shipping driven by events. Each publishes an OpenAPI spec, and the three specs are the library's input. It is built first, in its own project, and its API uses API Gateway API keys.
+- The demo backend is the Storefront backend ([storefront-backend](https://github.com/fushinoryuu/storefront-backend), see its roadmap): three AWS microservices built with CDK, customers on Aurora, orders on DynamoDB, and shipping driven by events. Each publishes an OpenAPI 3.0.3 spec, and the three specs are the library's input. It lives in its own project and its API uses API Gateway API keys. It has two stages: `dev`, which each of its pull request runs deploys and destroys, and `prod`, which stays up. Its draft specs (v0.1.0) come first, and each spec reaches v1.0.0 when its service ships.
 
 ## Phases
 
@@ -40,15 +50,15 @@ Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging
 ### Phase 0: Foundations and decisions
 - [ ] Repo skeleton, TypeScript strict, ESM, lint and format
 - [ ] Clean-room rules written down
-- [ ] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target
-- [ ] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison)
-- [ ] Java requirement handled (local, CI, and Docker fallback)
+- [ ] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target, call shape
+- [ ] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison), with no default generator
+- [ ] Java requirement handled if OpenAPI Generator is chosen (local, CI, and Docker fallback)
 
 ### Phase 1: Demo target
 - [ ] Contract agreed with the backend project: three specs with stable `operationId` and `tag` values, a shared error schema, an `apiKey` security scheme, `GET /version` on every service
-- [ ] Specs pulled in, validated, and reviewed as generator input (including name collisions across services)
-- [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `staging`
-- [ ] Stage readiness check across the three services, including the Aurora warm-up
+- [ ] Specs pulled in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
+- [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
+- [ ] Stage readiness check across the three services, with an opt-in Aurora warm-up
 - [ ] Optional local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
 - [ ] Backend's planned v1.1.0 (non-breaking) and v2.0.0 (breaking) spec changes mapped to their effect on generated clients
 
@@ -61,7 +71,7 @@ Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging
 - [ ] Custom Mustache template overrides only if the Phase 2 decision rule justifies them (default is none)
 
 ### Phase 3: Client facade and configuration
-- [ ] Recover and document the original public API shape (research task)
+- [ ] Document the call shape: one request object in, `{ status, headers, data }` out, no throw on HTTP error statuses
 - [ ] Typed facade over generated API classes, no hand edits per endpoint
 - [ ] Environment config and selection, fed by the backend's stage manifest
 - [ ] Auth providers: static API key in `x-api-key` (the Storefront default), plus none, bearer, and custom function, with named caller types (`tests`, `admin`)
@@ -82,7 +92,7 @@ Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging
 ### Phase 5: Spec-change workflow, CI, release
 - [ ] `sync-specs` script and documented update steps
 - [ ] Breaking-change detection on spec changes
-- [ ] CI: lint, typecheck, unit, generate-check, integration (manual or scheduled)
+- [ ] CI: lint, typecheck, unit, generate-check, and a scheduled or on-demand smoke run against `prod`
 - [ ] Semver rules driven by spec diff, changelog entry per release
 - [ ] Publish pipeline and an example consumer project
 - [ ] Generator and template upgrade workflow: separate pull requests, drift check on `openapitools.json` and `templates/`, tooling entries in the changelog
@@ -94,12 +104,3 @@ Point the same tests at any environment with `TEST_ENV=dev` or `TEST_ENV=staging
 - [ ] Measured claims (time to add an endpoint, hand-written vs generated lines)
 - [ ] Repo hygiene, AWS teardown instructions
 - [ ] Resume bullets and interview answers
-
-## Open questions to settle from memory or research
-
-- What did the original generator output look like, and did it use custom templates?
-- Was the `service.group.operation` facade generated or hand-written?
-- How was auth handled across services and environments?
-- How was it published (private registry?) and consumed (peer dependency on vitest?)
-- How many services did it cover, and how were specs obtained (repo, URL, artifact)?
-- Did it include test data helpers or cleanup conventions that are worth recreating?

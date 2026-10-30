@@ -37,7 +37,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ### 1. Spec sync
 
-- [ ] `sync-specs` pulls specs from their source into `specs/`. For Storefront, the backend publishes its three specs and a stage manifest as a build artifact or release asset and records the source commit. Copy them in, or fetch them at a given ref, naming each file `<service>-service.yaml`. Record the source, ref, and spec version for each in `specs/sources.json` so the origin of every spec is traceable. Pull all three together, so a change that spans services is one library change.
+- [ ] `sync-specs` pulls specs from their source into `specs/`. For Storefront, the backend publishes its three specs and a stage manifest as a build artifact or release asset and records the source commit. Copy them in, or fetch them at a given ref, naming each file `<service>-service.yaml`. Until the backend publishes those artifacts (its Phase 5), fetch the bundled files from a git ref of the backend repo's `specs/` folder. Record the source, ref, and spec version for each in `specs/sources.json` so the origin of every spec is traceable. Pull all three together, so a change that spans services is one library change.
 - [ ] Fail clearly if a source is unreachable. Never leave a half-updated `specs/` folder.
 - [ ] The same script pulls the stage manifest (service names, base URLs per stage, secret names, deployed spec versions), so the library's environment config does not duplicate it.
 - [ ] Document how a team with many services would point the same script at many repos or an internal spec registry.
@@ -52,7 +52,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 ### 3. Versioning and changelog
 
 - [ ] Semantic versioning for the package, driven by the diff: any breaking change means major, an added operation or field means minor, anything else means patch.
-- [ ] Decide how the package version relates to spec versions (for example, independent semver with the spec versions listed in the changelog). Record the decision.
+- [ ] Decide how the package version relates to spec versions (for example, independent semver with the spec versions listed in the changelog). Record the decision in decision record 0012.
 - [ ] `next-version` proposes the bump and a human confirms it in the PR.
 - [ ] Changelog entry per release listing added, removed, and changed operations per service, and the spec version each came from.
 - [ ] A change to the generator version, its options, or a template override changes generated code with no spec change. Classify that release by its effect on the generated public types (a removed or retyped export is breaking, an addition is minor, no type change is a patch) and list it in the changelog as a tooling change, separate from spec changes.
@@ -61,7 +61,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 - [ ] **ci.yml** on every push and PR: install, lint, typecheck (including generated code), unit tests, and `generate:check`. Set up Java (or use Docker) and cache the generator jar. `generate:check` uses the same generator version, options, and template folder as `generate`, and any change under `openapitools.json` or `templates/` always runs it.
 - [ ] **Spec PR job:** runs the diff, comments the result, and fails if a breaking change is not accompanied by a major version bump.
-- [ ] **integration.yml:** runs the integration suites against `dev`, on demand, on a schedule, and after a spec change merges. Credentials come from repository secrets. The API keys are secrets scoped to the `dev` stage, with the `admin` key stored separately and used only by the tests that need it. Allow for the Aurora warm-up in the job timeout. Stretch: if a real identity provider is used, its client secrets are stored the same way, one per caller type, and the token provider tests that need no cloud access stay separate from them. Upload JUnit or JSON results.
+- [ ] **integration.yml:** runs the `smoke` project against `prod`, on a schedule and on demand. Smoke is read-only and never touches Aurora, so the job needs no warm-up and never wakes the cluster. The `full` project runs against `dev` only once the cross-repo wiring with the backend exists (its deploy-test-destroy flow), and until then runs locally. Credentials come from repository secrets. The scheduled smoke job uses the `prod` `tests` key. The `admin` key is stored separately and used only by `full` jobs that need it, and the `services` key is never loaded. Allow for the Aurora warm-up in the timeout of `full` jobs. Stretch: if a real identity provider is used, its client secrets are stored the same way, one per caller type, and the token provider tests that need no cloud access stay separate from them. Upload JUnit or JSON results.
 - [ ] Never run write tests against a protected environment in CI.
 - [ ] Keep unit and generation checks free of network access to the Storefront services, so a cloud outage cannot block unrelated work.
 - [ ] Stretch: token provider tests run in CI against the in-process mock OAuth2 server, which needs no cloud access and no secrets.
@@ -81,7 +81,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ### 7. Rehearse the demo
 
-Script the full story using the planned spec changes from Phase 1, and run it end to end at least once:
+Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. It needs the shipped v1.0.0 specs and a deployed `dev` stack, so it comes after the backend has finished its services:
 
 - [ ] **v1.0.0:** the library is built from the three v1.0.0 Storefront specs and published. The example tests pass against `dev`.
 - [ ] **v1.1.0 (non-breaking):** apply the backend's planned v1.1.0 changes (customers: optional `preferredLanguage`; orders: `GET /orders/{orderId}/timeline` and an optional `notes` field on order creation; shipping: an optional `carrier` filter on the shipment list). Once the backend has deployed them to `dev`, run sync and generate, and see `getOrderTimeline` appear in autocomplete. Add one test, publish 1.1.0. Time the whole thing.
@@ -112,5 +112,5 @@ Spec changes are not the only reason generated code changes. Bumping the pinned 
 
 - **Over-trusting the diff tool.** Review its output on realistic changes before relying on it to gate releases.
 - **Publishing something private.** Check the tarball contents. Use a dry run first.
-- **Credential handling.** CI secrets for the integration job must be scoped to the Storefront `dev` environment only, because API keys are shared secrets.
+- **Credential handling.** CI secrets for the integration job must be scoped to the stages and caller types each job needs: the `prod` `tests` key for scheduled smoke runs, and never the `services` key. API keys are shared secrets.
 - **Version confusion.** If package versions and spec versions diverge, the changelog is the bridge, so keep it accurate.

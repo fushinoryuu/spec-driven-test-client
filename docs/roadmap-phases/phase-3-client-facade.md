@@ -7,7 +7,7 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 - A single entry point that exposes every generated service, endpoint group, and operation with full type inference.
 - No hand-written code per endpoint. Adding an operation to a spec adds it to the facade automatically.
 - Environment, auth, and safety handled in one place, not in every test.
-- The original public API shape recovered and documented, then matched or deliberately improved.
+- A call shape that suits tests: one request object in, `{ status, headers, data }` out, and no throw on HTTP error statuses (decision record 0010).
 
 ## Deliverables
 
@@ -17,6 +17,7 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 | Environment config | `src/client/config.ts`, `config/environments.ts` |
 | Auth providers | `src/client/auth.ts` |
 | Fetch wrapper (middleware) | `src/client/transport.ts` |
+| Call normalization and response type | `src/client/response.ts` |
 | Protected-environment guard | `src/client/safety.ts` |
 | Public exports | `src/index.ts` |
 | Unit tests | `tests/unit/client/` |
@@ -24,7 +25,7 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 
 ## Public API shape
 
-The remembered shape was `library.backend-service.version-endpoint.endpoint(inputs)`. Map it to the spec:
+The public shape is `library.service.group.operation(request)`. Map it to the spec:
 
 | Part | Comes from |
 |---|---|
@@ -33,9 +34,21 @@ The remembered shape was `library.backend-service.version-endpoint.endpoint(inpu
 | `.version` | the endpoint group (an OpenAPI `tag`, which becomes a generated API class) |
 | `.getVersion(...)` | the operation (`operationId`) |
 
-The Storefront services give calls such as `apitest.customersService.customers.createCustomer(...)`, `apitest.ordersService.orders.createOrder(...)`, and `apitest.shippingService.shipments.getShipment(...)`. Every service also has a `version` group. The `Service` suffix avoids the awkward `apitest.customers.customers` reading when a service and its main tag share a name.
+The Storefront services give calls such as `apitest.customersService.customers.createCustomer(...)`, `apitest.ordersService.orders.createOrder(...)`, and `apitest.shippingService.shipments.getShipment(...)`. Every service also has a `version` group, which also holds the health route (and, on customers, `getReadiness`). The `Service` suffix avoids the awkward `apitest.customers.customers` reading when a service and its main tag share a name.
 
-Research task for this phase: **recover the real original shape** before locking this in. Write down, from memory or from any notes you have, how a call looked, how inputs were passed (positional, object, or both), what a call returned (parsed body, or a response object with status and headers), and how failures surfaced. Where the memory is fuzzy, pick the better design and record it as a decision.
+### Call shape (decision record 0010)
+
+- **Inputs:** one request object per call. Path, query and header parameters and the body are named fields of that object, and the field names come from the generated request type. There are no positional parameters, so adding a parameter to an operation never shifts the meaning of existing arguments or breaks existing calls. An operation with no parameters takes no argument.
+- **Return value:** `{ status, headers, data }`. The type is a union discriminated by `ok` (true for 2xx). On success `data` is the operation's success model. Otherwise `data` is the parsed error body (the shared error schema), or text or `unknown` when the body is not that shape, as with API Gateway's own responses. Reading a success field directly needs narrowing: check `ok`, or use `expectStatus`, which returns the typed body. `expect(response.status).toBe(200)` works on any response.
+- **Failures:** HTTP error statuses do not throw. A library error is thrown only when there is no HTTP response: a network error, a timeout, or the protected-environment guard blocking a write.
+
+```ts
+const found = await apitest.customersService.customers.getCustomer({ customerId });
+const customer = expectStatus(200, found); // typed body
+
+const missing = await apitest.customersService.customers.getCustomer({ customerId: 'unknown' });
+expect(missing.status).toBe(404);
+```
 
 ## Design
 
@@ -46,17 +59,18 @@ The generator emits one class per tag, typically named `<Tag>Api`, each taking a
 The facade is step 2 of the Phase 2 decision rule for shaping generated output, and the transport hooks below are step 3. Use them before reaching for custom generator templates.
 
 - [ ] Registry: one line per service mapping a name to its generated module (`ordersService: () => import('../generated/orders-service')`), or auto-discovery from `src/generated/*`.
-- [ ] Mapped types so the facade is fully typed with no codegen of its own: take the keys of the generated module that end in `Api`, strip the suffix, lower-case the first letter, and map to `InstanceType` of the class. Verify this works with the chosen generator's export style in the Phase 0 spike.
+- [ ] Mapped types so the facade is fully typed with no codegen of its own: take the keys of the generated module that end in `Api`, strip the suffix, lower-case the first letter, and map to `InstanceType` of the class. The mapped type also rewrites each operation's signature to the call shape above (one request object in, response object out). Verify this works with the chosen generator's export style in the Phase 0 spike.
+- [ ] Call normalization: a runtime wrapper around each generated method turns the generator's result into `{ status, headers, data }` without throwing on HTTP statuses. How depends on the generator chosen: call the raw-response variants (fetch-style clients) or turn off status validation (axios-style clients). The hand-written code lives in the wrapper, never per endpoint.
 - [ ] Lazy construction: API classes are created on first access and share one `Configuration` per service per environment.
 - [ ] Result: adding an operation or a tag to a spec, regenerating, and rebuilding makes it appear in autocomplete with no facade edits. Adding a whole service is one registry line.
 
 ### Environments
 
-- [ ] A config file maps `{ environment: { service: baseUrl } }` plus flags per environment (`protected`, `allowWrites`).
-- [ ] Base URLs normally come from the backend's stage manifest (service names, base URLs per stage, secret names, deployed spec versions), loaded at startup. A checked-in static config is the fallback when the manifest is unavailable.
+- [ ] A config file maps `{ environment: { service: baseUrl } }` plus flags per environment (`protected`, `allowWrites`). `prod` is flagged `protected`. `dev` is not.
+- [ ] Base URLs normally come from the backend's stage manifest (service names, base URLs per stage, secret names, deployed spec versions), loaded at startup. A checked-in static config is the fallback when the manifest is unavailable, which is the case until the backend publishes it (its Phase 5). The `dev` stage is recreated on every backend pull request run, so its URLs change each time: read the manifest at the start of every run and never cache URLs between runs.
 - [ ] Selection order: explicit `createClient({ env })` argument, then `TEST_ENV` environment variable, then a default (`dev`).
 - [ ] Base URLs can be overridden per service by environment variable for ad hoc targets (for example a local mock or a preview deployment).
-- [ ] Clear error when an environment or service is unknown, listing the valid options.
+- [ ] Clear error when an environment or service is unknown, or not currently deployed (for example `dev` outside a backend pull request run), listing the valid options.
 
 ### Auth
 
@@ -65,7 +79,7 @@ The facade is step 2 of the Phase 2 decision rule for shaping generated output, 
 - [ ] Token caching with expiry for the custom-function provider, so tests do not fetch a token per request. A static API key needs no caching.
 - [ ] Per-service and per-environment overrides.
 - [ ] **Named caller types.** The backend issues separate keys for `tests` and `admin` (and `services`, which tests should never use). Config maps a caller type to a secret per environment, with `tests` as the default. A test that needs admin behavior, such as advancing a shipment through the simulation endpoint, asks for an admin client explicitly, for example `apitest.as('admin').shippingService.simulation.advanceShipment(...)`. An admin client is created only on request, so ordinary tests never hold admin credentials.
-- [ ] Secrets come from environment variables or the test runner's secret store, never from files in the repo. Keys are retrieved after deploy by the backend's key retrieval script and are never printed.
+- [ ] Secrets come from environment variables or the test runner's secret store, never from files in the repo. Keys are retrieved after deploy by the backend's key retrieval script and are never printed. Environment variables are named `APITEST_<ENV>_<CALLER>_API_KEY` with the environment and caller type in upper case, for example `APITEST_DEV_TESTS_API_KEY` and `APITEST_PROD_ADMIN_API_KEY` (`APITEST` follows the placeholder library name). A local untracked `.env` file may set them. The `services` caller type is not supported: the library never loads that key.
 
 ### Stretch: bearer token acquisition and refresh
 
@@ -92,18 +106,18 @@ Real services usually use bearer tokens, not API keys. When no API key is config
 - [ ] Admin credentials are requested only when an admin client is created, and the protected-environment guard still applies.
 - [ ] Global setup acquires tokens up front (Phase 4), so token problems show before the first test.
 
-**Where tokens could come from.** Cost is the open question, so the options are listed with it:
+**Where tokens could come from.** The library only needs an OAuth2 client-credentials token endpoint. Which provider issues the tokens, and any authorizer the backend's APIs would need, are backend decisions outside this library's scope. Cost is the open question, so the options are listed with it:
 
 | Option | Cost | Notes |
 |---|---|---|
 | Mock OAuth2 server inside the tests (for example the `oauth2-mock-server` npm package) | Free | Supports client credentials and refresh grants, starts in-process from a test, and lets you change token expiry and claims before signing, which makes expiry and refresh easy to test. Its tokens cannot be verified against a real issuer, so this proves the library, not a backend. Recommended for building and testing this feature |
 | Keycloak (or similar) in Docker on your machine | Free | A realistic identity provider for local demos. Heavier to run and not part of a hosted demo |
 | Amazon Cognito user pool with a resource server and client credentials | Small, but not zero | When checked in late October 2026, M2M token requests were charged per successful token response (the pricing page example is $0.00225 per request in US East), with no free tier for token requests and no monthly charge per app client (that charge was removed in November 2025). A pool with no end users stays within the free monthly active user tier. With in-memory caching a test run requests only a couple of tokens, so a demo should cost cents. Check current pricing and keep the budget alarm. It also means the backend must add a Cognito authorizer to its REST APIs |
-| Free tier of a hosted identity provider | Free within limits | Limits and terms change, so check before relying on one |
+| Another hosted identity provider that supports client credentials (for example Microsoft Entra ID) | Check current pricing | Limits and terms change, so check before relying on one |
 | A small token endpoint you write yourself (a Lambda that signs short-lived tokens, plus a Lambda authorizer) | Pennies | Works for a demo, but it is hand-rolled auth. Label it demo-only and never present it as a pattern to copy |
 | Keep API keys on the deployed demo and show bearer tokens only against the mock server | Free | The least effort, and it still demonstrates the library capability |
 
-**Recommendation:** build and test the token provider against the mock server. Decide later, as a separate optional step, whether to wire a real identity provider into the backend. Record the choice in decision record 0009.
+**Recommendation:** build and test the token provider against the mock server. Decide later, as a separate optional step, whether to wire a real identity provider into the backend. That choice belongs to the backend project, because it would need a token issuer and a matching authorizer. Record it in decision record 0009 if it is ever made.
 
 **Stretch tasks:**
 
@@ -118,53 +132,53 @@ Real services usually use bearer tokens, not API keys. When no API key is config
 
 ### Transport and middleware
 
-The generated `typescript-fetch` runtime accepts a custom `fetchApi` and middleware in its `Configuration`. Use that hook, not a fork of the runtime. Confirm the exact option names against the generated runtime during the spike.
+Whichever generator the spike picks has a hook for a custom transport: the `typescript-fetch` runtime accepts a custom `fetchApi` and middleware in its `Configuration`, and axios-based clients accept an axios instance with interceptors. Use that hook, not a fork of the runtime. Confirm the exact option names during the spike.
 
 - [ ] **Correlation id** header on every request, logged so a failing test can be matched to backend logs.
 - [ ] **Logging** of method, path, status, and duration, with auth headers and configured fields redacted. Quiet by default, verbose with an env var.
 - [ ] **Timeouts** with a sensible default and a per-call override.
-- [ ] **Retries** off by default. When enabled, retry only network errors and 502, 503, 504 on idempotent methods, with a cap, and log every retry so it never hides a real problem.
+- [ ] **Retries** off by default. When enabled, retry only network errors and 502, 503, 504 on idempotent methods, with a cap, and log every retry so it never hides a real problem. The warm-up call has its own bounded retry rule (see Warm-up).
 - [ ] **Safety guard** (below) runs first in the chain.
 
 ### Errors and negative testing
 
-Generated clients usually throw on non-2xx responses and also expose a raw variant that returns the response. Tests need both.
+Generated clients usually throw on non-2xx responses. This library does not (decision record 0010), because a 404 or 409 is an expected outcome in a negative test.
 
-- [ ] Document when to use the normal call (happy path, typed body) and the raw call (inspect status, headers, error body).
-- [ ] Provide `expectStatus(status, call)` and `expectProblem(call, matcher)` helpers (Phase 4 uses them) so asserting a 404 or 409 is one line.
-- [ ] Wrap thrown errors in a library error type that carries the request summary, status, parsed error body, and correlation id.
-- [ ] Cope with responses produced by API Gateway itself (a missing or invalid key, throttling with 429). The backend customizes these to the shared error shape, but the error type should still handle a plain gateway body.
+- [ ] A call returns `{ status, headers, data }` for every HTTP response, success or error. It throws a library error only when there is no HTTP response: a network error, a timeout, or the protected-environment guard blocking a write.
+- [ ] Provide `expectStatus(status, response)` and `expectProblem(response, matcher)` helpers (Phase 4 uses them). Both also accept the pending call, so `await` is optional. `expectStatus` returns the typed body, and a mismatch fails with a message that includes the request summary, status, error body, and correlation id. Asserting a 404 or 409 is one line.
+- [ ] The library error type for thrown failures carries the request summary and correlation id. It has no status, because there was no response.
+- [ ] Cope with responses produced by API Gateway itself (a missing or invalid key returning 403, throttling returning 429). The backend customizes these to the shared error shape, but `data` must still handle a plain gateway body, typed as text or `unknown` and not as the shared error schema.
 
 ### Warm-up for cold dependencies
 
-The customers service uses an Aurora Serverless v2 database that can pause when idle. The first request after a pause typically takes about 15 seconds, and longer after a long idle period.
+The customers service uses an Aurora Serverless v2 database that can pause when idle. The first request after a pause typically takes about 15 seconds, and 30 seconds or more after a long idle period. The API Gateway integration timeout (about 29 seconds by default, still to be verified by the backend) means a long resume can surface as a 503 or 504 before the database is ready.
 
-- [ ] An optional per-service `warmup` hook (a call to a readiness operation) that global setup runs before any test, with a generous timeout, so a cold database reads as a slow start and not a failure.
+- [ ] An optional per-service `warmup` hook (a call to a readiness operation: customers `getReadiness`, which needs a key and touches the database) that global setup runs before the `full` project, never before `smoke`. It uses a generous timeout and retries within a total time limit on 503 (honoring the retry hint) and 504, so a cold database reads as a slow start and not a failure. This is the only place the library retries on those statuses by default.
 - [ ] Per-service default timeouts, with a longer allowance for the first call to customers.
-- [ ] Retries stay off by default. Warm-up is the intended fix, not blanket retries.
+- [ ] Retries stay off by default. Warm-up is the intended fix, not blanket retries. Nothing calls the readiness operation on a schedule, because that keeps the database awake, so scheduled `smoke` runs skip warm-up.
 
 ### Protected-environment guard
 
 Integration tests that can point at any environment need a seatbelt.
 
-- [ ] Environments flagged `protected` (such as prod) allow only safe methods (GET, HEAD, OPTIONS) by default.
+- [ ] Environments flagged `protected` (`prod` is flagged by default) allow only safe methods (GET, HEAD, OPTIONS) by default.
 - [ ] Writes to a protected environment require an explicit opt-in that is hard to set by accident (for example both an environment variable and a per-test marker), and are logged loudly.
-- [ ] The guard lives in the transport layer, so it cannot be bypassed by a test using a raw call.
+- [ ] The guard lives in the transport layer, so it applies to every call and a test cannot bypass it.
 - [ ] Startup message states which environment is targeted and whether it is protected.
 - [ ] Unit tests prove a write to a protected environment is blocked before any network call.
 
 ## Tasks
 
-- [ ] Write down the recovered original API shape and the design decisions that depart from it.
+- [ ] Document the call shape (decision record 0010) in `docs/client-api.md`.
 - [ ] Implement config loading and environment selection.
 - [ ] Implement auth providers (static API key first), caller types, and token caching for custom providers.
 - [ ] Implement the warm-up hook and the stage manifest loader.
 - [ ] Stretch: implement automatic bearer token acquisition and refresh (see the stretch section above).
 - [ ] Implement the transport wrapper with correlation id, logging, timeout, optional retry, and the guard.
-- [ ] Implement the facade with mapped types, and a typed `createClient` for custom setups.
+- [ ] Implement the facade with mapped types and call normalization, and a typed `createClient` for custom setups.
 - [ ] Export a ready-to-use default client for the common case.
-- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, error wrapping, and the facade's lazy construction.
-- [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.orders.createOrder` accepts and returns the generated types.
+- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, and the facade's lazy construction.
+- [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.orders.createOrder` accepts the generated request type and returns the response object, with `data` typed from the generated models and narrowed by `ok`.
 
 ## Acceptance criteria
 
@@ -177,6 +191,6 @@ Integration tests that can point at any environment need a seatbelt.
 ## Risks and notes
 
 - **Type gymnastics.** Mapped types over generated modules can get complicated. Keep them small, tested with `expectTypeOf`, and fall back to a one-line-per-group registry if inference becomes brittle.
-- **Hiding too much.** A facade that swallows status codes or headers makes negative tests painful. Always provide access to the raw response.
+- **Hiding too much.** A facade that swallows status codes or headers makes negative tests painful. The response object always carries the status and headers, so negative tests never need a separate raw call.
 - **Secrets in logs.** Redaction needs tests, because a leaked API key in CI output is a real incident.
 - **Retry masking flakiness.** Retries are off by default for a reason. If they are on, surface the retry count in the test output.

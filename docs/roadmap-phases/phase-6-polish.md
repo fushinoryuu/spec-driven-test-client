@@ -28,7 +28,7 @@ Make the project easy to understand and easy to try. A reader should get the ide
 - [ ] A one-paragraph summary: what the library is and the problem it solves (hand-written clients for many services drift and cost time).
 - [ ] The target experience snippet from the roadmap, right at the top.
 - [ ] A diagram of the pipeline: specs, validate, generate, facade, tests, publish.
-- [ ] Quick start: prerequisites (Node, Java or Docker), install, generate, run the smoke tests against the mock or `dev`.
+- [ ] Quick start: prerequisites (Node, Java or Docker), install, generate, run the smoke tests against the mock or `prod`.
 - [ ] "Add a service" and "Update a spec" in a few lines each, linking to the runbook.
 - [ ] Configuration reference: environments, auth (API keys, and bearer tokens if the stretch goal is built), protected environments, logging.
 - [ ] Testing section: unit, integration, smoke versus full.
@@ -39,7 +39,7 @@ Make the project easy to understand and easy to try. A reader should get the ide
 
 Pick one format and do it well.
 
-- **Short screen recording or GIF**, under two minutes: edit the spec, run generate, show the new method appear in the editor, write a test, run it against `dev`.
+- **Short screen recording or GIF**, under two minutes: edit the spec, run generate, show the new method appear in the editor, write a test, run it against the mock or a deployed `dev` stage.
 - **Annotated transcript** of the same sequence with callouts.
 
 Include the breaking-change moment, where `tsc` points at the tests that no longer match the spec. It shows the value faster than any description.
