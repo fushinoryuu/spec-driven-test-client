@@ -2,7 +2,7 @@
 
 The core selling point: a repeatable, one-command path from OpenAPI specs to typed clients. When this phase is done, adding or updating a service means changing a spec file and running one script.
 
-This phase is written for OpenAPI Generator. If the Phase 0 spike chooses a TypeScript-native generator instead, tasks 1 to 3 and 7 change (no Java, no jar, no Mustache templates, a different config file), and the rest still holds.
+This phase was drafted for OpenAPI Generator. The Phase 0 spike chose hey-api `openapi-ts` instead ([0002](../decisions/0002-generator.md)), so tasks 1 to 3 and 7 change (no Java, no jar, no Mustache templates, and `openapi-ts.config.mjs` instead of `openapitools.json`) and are rewritten when the Phase 2 tickets are filed. The rest still holds.
 
 ## Goals
 
