@@ -2,13 +2,11 @@
 
 A TypeScript library, run with vitest, that generates a typed client for every backend service from its OpenAPI spec so integration tests can call the services like ordinary functions. The central idea: **updating the library is "change the spec, rerun the generator, publish."**
 
-`apitest-kit` is a placeholder name used in examples. Rename it freely.
-
 ## The target experience
 
 ```ts
 import { expect } from 'vitest';
-import { apitest, expectStatus } from 'apitest-kit';
+import { apitest, expectStatus } from 'spec-driven-test-client';
 
 // library . service . endpoint group (spec tag) . operation (operationId)
 // Every call takes one request object and returns { status, headers, data }.
@@ -43,7 +41,7 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 | 3 | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md) | `apitest.service.group.operation()` plus environments, auth, safety |
 | 4 | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md) | Fixtures, cleanup, example integration tests |
 | 5 | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to published version, automated |
-| 6 | [Polish](roadmap-phases/phase-6-polish.md) | Docs, demo, resume material |
+| 6 | [Polish](roadmap-phases/phase-6-polish.md) | Docs, demo, measured results |
 
 ## Checklist
 
@@ -102,4 +100,3 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 - [ ] Short demo recording or annotated transcript
 - [ ] Measured claims (time to add an endpoint, hand-written vs generated lines)
 - [ ] Repo hygiene, AWS teardown instructions
-- [ ] Resume bullets and interview answers

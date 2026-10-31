@@ -19,7 +19,7 @@ Make writing an integration test feel easy and safe. This phase adds the vitest 
 | Assertion helpers | `src/testing/expect.ts` |
 | Test data builders | `src/testing/builders/` |
 | Example integration suites | `tests/integration/` |
-| Public testing entry point | `src/testing/index.ts` (exported as `apitest-kit/testing`) |
+| Public testing entry point | `src/testing/index.ts` (exported as `spec-driven-test-client/testing`) |
 | Authoring guide | `docs/writing-tests.md` |
 
 ## Tasks
