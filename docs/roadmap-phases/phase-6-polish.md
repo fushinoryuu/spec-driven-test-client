@@ -19,7 +19,6 @@ Make the project easy to understand and easy to try. A reader should get the ide
 | Measured results | `docs/results.md` |
 | Decision records, finalized | `docs/decisions/` |
 | Limitations and roadmap | `docs/limitations.md` |
-| Resume bullets and interview notes | kept outside the repo |
 
 ## Tasks
 
@@ -75,35 +74,14 @@ An honest limitations page builds credibility.
 - [ ] Verify a fresh clone follows the README without help.
 - [ ] AWS: the budget alarm, throttling, and teardown instructions live in the backend project, so confirm they are in place and link to them. Decide whether to leave the Storefront stack running or provide mocks for visitors. Because the services use API keys, do not leave a working key anywhere public.
 
-### 6. Resume and interview material
-
-Draft bullets in this shape and adjust to what was actually built and measured:
-
-- Built a spec-driven integration test library in TypeScript that generates typed clients for backend services from OpenAPI specs, so a spec update reaches a published package version with one command and no hand-written client code.
-- Designed a runtime facade, environment and auth configuration, and a protected-environment guard that blocks writes to production-like targets by default.
-- (If the stretch goal is built) Added automatic OAuth2 client-credentials token acquisition and refresh, with single-flight refresh and a mock identity provider test harness.
-- Automated spec change handling in CI: generated-code drift checks, breaking-change detection with enforced semantic versioning, and an example consumer that validates the published package.
-- Built the demo target: a three-service AWS backend (Aurora, DynamoDB, and event-driven services, CDK in TypeScript) that publishes an OpenAPI contract per service.
-
-Prepare short answers for:
-
-- [ ] Why generate clients instead of hand-writing them?
-- [ ] What happens when the spec and the real API disagree, and how do you detect it?
-- [ ] How do you stop tests from damaging a real environment?
-- [ ] How do you handle breaking changes across many services and consumers?
-- [ ] What would you change to run this for 50 services?
-- [ ] Where does generated code hurt, and how did you handle it?
-- [ ] When would you override generator templates, and what does that cost you?
-- [ ] How does the library handle expired tokens without flaky tests? (if the stretch goal is built)
-
 ## Acceptance criteria
 
 - A stranger can read the README, watch the demo, and run the smoke tests in under ten minutes.
-- Every claim in the README and on the resume maps to something in the repo: a test, a measurement, or a script.
+- Every claim in the README maps to something in the repo: a test, a measurement, or a script.
 - The repo contains no secrets and nothing unrelated to this project or the Storefront demo.
 
 ## Risks and notes
 
-- **Overclaiming.** Report measured numbers with their conditions. If the original library was faster or broader, do not imply the replica matches it.
+- **Overclaiming.** Report measured numbers with their conditions, and claim only what the repo demonstrates.
 - **Scope creep.** If earlier phases are thin, ship a smaller feature set with better documentation instead of adding features.
 - **Cost surprise.** Check the AWS bill and the budget alarm before sharing the repo widely.
