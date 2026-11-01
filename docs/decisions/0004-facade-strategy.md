@@ -30,5 +30,6 @@ Transport concerns (auth, correlation id, timeouts, the protected-environment gu
 
 - The mapped types depend on how the chosen generator exports its classes. The spike ([0002](0002-generator.md)) must verify the mapping works with its output.
 - Mapped types can become brittle. They stay small and are covered by `expectTypeOf` tests. If inference breaks down, the fallback is a one-line-per-group registry (still no per-endpoint code).
+- A service that serves several API versions gets one more segment between the service and the group (`apitest.widgetsService.v2.widgets.listWidgets`). The rules are decision record 0013, written in Phase 2.
 - Adding a service is one registry line. Adding an operation needs only a spec change and a regenerate.
 - The facade is step 2, and the transport hooks step 3, of the decision rule for shaping generated output in [0008](0008-custom-generator-templates.md), so they are tried before any template override.

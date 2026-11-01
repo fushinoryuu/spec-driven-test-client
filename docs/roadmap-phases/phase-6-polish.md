@@ -31,7 +31,7 @@ Make the project easy to understand and easy to try. A reader should get the ide
 - [ ] "Add a service" and "Update a spec" in a few lines each, linking to the runbook.
 - [ ] Configuration reference: environments, auth (API keys, and bearer tokens if the stretch goal is built), protected environments, logging.
 - [ ] Testing section: unit, integration, smoke versus full.
-- [ ] Design notes: why generated clients, why a facade, why commit generated code, why a protected-environment guard, and why there are no custom generator templates (or which overrides exist and why).
+- [ ] Design notes: why generated clients, why a facade, why commit generated code, why a protected-environment guard, and why there are no custom generator templates (or which overrides exist and why). Also how several API versions of one service and feature flags are handled, with a short example of each from the fixtures.
 - [ ] Badges for CI and package version.
 
 ### 2. Demo

@@ -19,9 +19,11 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 | Fetch wrapper (middleware) | `src/client/transport.ts` |
 | Call normalization and response type | `src/client/response.ts` |
 | Protected-environment guard | `src/client/safety.ts` |
+| Feature flag providers and helpers | `src/client/flags.ts` |
 | Public exports | `src/index.ts` |
 | Unit tests | `tests/unit/client/` |
-| API reference doc | `docs/client-api.md` |
+| API reference doc (including versioned services) | `docs/client-api.md` |
+| Feature flag guide | `docs/feature-flags.md` |
 
 ## Public API shape
 
@@ -31,6 +33,7 @@ The public shape is `library.service.group.operation(request)`. Map it to the sp
 |---|---|
 | `apitest` | the library's exported client |
 | `.ordersService` | the service (one spec file, one registry entry). The name comes from the spec file name, so `orders-service.yaml` becomes `ordersService` |
+| `.v1` (only for a service that serves several API versions) | the API version. It comes from a spec file named `<service>-service-v<N>.yaml`, so `widgets-service-v1.yaml` gives `widgetsService.v1`. A service with a single spec has no version segment. See Versioned services below |
 | `.version` | the endpoint group (an OpenAPI `tag`, which becomes a generated API class) |
 | `.getVersion(...)` | the operation (`operationId`) |
 
@@ -63,6 +66,24 @@ The facade is step 2 of the Phase 2 decision rule for shaping generated output, 
 - [ ] Call normalization: a runtime wrapper around each generated method turns the generator's result into `{ status, headers, data }` without throwing on HTTP statuses. How depends on the generator chosen: call the raw-response variants (fetch-style clients) or turn off status validation (axios-style clients). The hand-written code lives in the wrapper, never per endpoint.
 - [ ] Lazy construction: API classes are created on first access and share one `Configuration` per service per environment.
 - [ ] Result: adding an operation or a tag to a spec, regenerating, and rebuilding makes it appear in autocomplete with no facade edits. Adding a whole service is one registry line.
+
+### Versioned services
+
+Some services serve two API versions at once (`/v1/...` and `/v2/...`) while their clients migrate, and a test suite has to exercise both. Decision record 0013 (written in Phase 2) fixes the rules, and this section builds them into the facade. The Storefront does not do this, so the behavior is proven with the library's fixture specs and a local mock, not against the Storefront. The API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist.
+
+```ts
+// widgets-service-v1.yaml and widgets-service-v2.yaml, both generated and both callable
+const old = await apitest.widgetsService.v1.widgets.listWidgets({});
+const current = await apitest.widgetsService.v2.widgets.listWidgets({ pageSize: 20 });
+```
+
+- [ ] The registry derives the service and its versions from the spec file names (`<service>-service-v<N>.yaml`). Adding a version is dropping in a spec file and regenerating, with no per-version code.
+- [ ] Mapped types add the version segment only for a service that has versions, so a single-spec service keeps its flat shape (`apitest.ordersService.orders.getOrder`). Each version carries its own request and response types, so a field that exists only in `v2` is a type error on `v1`.
+- [ ] One `Configuration` per service, version and environment. All versions share the service's base URL by default, because the version is part of the path in the spec, and config can override a base URL for one version.
+- [ ] Auth, the protected-environment guard, logging, timeouts and the warm-up hook apply to every version of a service the same way, with per-version overrides only where config sets them.
+- [ ] A clear error when a version is unknown at run time (for example a version named in a base URL override), listing the versions that exist. At compile time, `.v3` on a service with two versions is a type error.
+- [ ] Open for decision record 0013: whether to offer a `latest` alias for the highest version, and whether the version check in global setup runs per version.
+- [ ] Unit tests with the fixture specs and the local mock: both versions are callable and reach their own paths, `expectTypeOf` shows different request types per version, a single-spec service has no version segment, and an unknown version fails clearly.
 
 ### Environments
 
@@ -157,6 +178,26 @@ The customers service uses an Aurora Serverless v2 database that can pause when 
 - [ ] Per-service default timeouts, with a longer allowance for the first call to customers.
 - [ ] Retries stay off by default. Warm-up is the intended fix, not blanket retries. Nothing calls the readiness operation on a schedule, because that keeps the database awake, so scheduled `smoke` runs skip warm-up.
 
+### Feature flags
+
+Behavior that sits behind a feature flag differs by environment. A test written for the new behavior fails, or passes for the wrong reason, where the flag is off. The library lets a test ask for a flag, and skip with a stated reason when the flag is in the wrong state (decision record 0014, written in this phase). The Storefront has no feature flags, so the behavior is proven against a local mock. Where flag values come from in a real system is the backend's decision, so the library reads them through a provider and any source fits.
+
+```ts
+test('express shipping is offered', async ({ api, flags }) => {
+  flags.require('express-shipping'); // skips with a reason when the flag is off in this environment
+  // ...
+});
+```
+
+- [ ] A flag provider is a function `(flag, context) => boolean | Promise<boolean>`, where the context holds the environment and caller type. It may also offer `set(flag, value, context)`.
+- [ ] Built-ins: a static map per environment in the config (the default), an environment variable override named `APITEST_FLAG_<NAME>` for ad hoc runs, and a custom async function, for example one that calls a generated operation such as `getFeatures` on a service, or a flag service SDK.
+- [ ] Flags are resolved once in global setup (Phase 4) and cached for the run, never once per test. The startup message lists the resolved flags for the selected environment.
+- [ ] A flag the provider does not know is an error naming the flag and the environment, not a silent "off". A flag declared optional in config may default to off.
+- [ ] Helpers: `flags.isEnabled(name)`, `flags.require(name)` and `flags.requireOff(name)`, which skip the test with a reason. Flag names are a union type declared in the config, so a typo fails at typecheck.
+- [ ] Skips are visible. The run summary lists the tests skipped because of a flag, grouped by flag, so a flag that quietly disables a whole suite shows up.
+- [ ] Stretch: `flags.set(name, value)` for providers that support it. It works on non-protected environments only (the protected-environment guard applies), registers its undo in the Phase 4 cleanup registry, and is used only by tests in a sequential project so a changed flag cannot leak into tests running in parallel.
+- [ ] Document the providers, the helpers and the skip reporting in `docs/feature-flags.md`.
+
 ### Protected-environment guard
 
 Integration tests that can point at any environment need a seatbelt.
@@ -176,8 +217,10 @@ Integration tests that can point at any environment need a seatbelt.
 - [ ] Stretch: implement automatic bearer token acquisition and refresh (see the stretch section above).
 - [ ] Implement the transport wrapper with correlation id, logging, timeout, optional retry, and the guard.
 - [ ] Implement the facade with mapped types and call normalization, and a typed `createClient` for custom setups.
+- [ ] Add the version segment for services with several API versions, and write decision record 0013 with the Phase 2 naming rules.
+- [ ] Implement the feature flag providers and helpers, and write decision record 0014.
 - [ ] Export a ready-to-use default client for the common case.
-- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, and the facade's lazy construction.
+- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, the facade's lazy construction, versioned services, and the flag providers (known and unknown flags, one lookup per flag per run, and the guard blocking `set` on a protected environment).
 - [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.orders.createOrder` accepts the generated request type and returns the response object, with `data` typed from the generated models and narrowed by `ok`.
 
 ## Acceptance criteria
@@ -185,6 +228,8 @@ Integration tests that can point at any environment need a seatbelt.
 - A test can call any generated operation through `apitest.<service>.<group>.<operation>()` with full autocomplete.
 - Adding an operation to a Storefront spec (for example the planned `getOrderTimeline` in v1.1.0) and regenerating makes it available with zero facade edits.
 - Switching `TEST_ENV` changes the target for every call.
+- A service with two API versions is callable as `apitest.<service>.v1.<group>.<operation>()` and `.v2`, each with its own types, and a single-spec service keeps its flat shape.
+- A test that requires a feature flag is skipped, with a reason, when the flag is off, and the unknown-flag and skip-reporting cases are covered by unit tests.
 - A write against a protected environment is blocked by default and covered by a unit test.
 - Unit tests for config, auth, transport, and the guard pass in CI without network access.
 

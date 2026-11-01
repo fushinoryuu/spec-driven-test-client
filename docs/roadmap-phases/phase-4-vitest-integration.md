@@ -41,6 +41,7 @@ Make writing an integration test feel easy and safe. This phase adds the vitest 
 - [ ] Stretch: when a caller type has no API key but has a token source, acquire its token up front through the Phase 3 token provider and report how long it took.
 - [ ] Verify each target service is reachable and compare its `GET /version` with the spec version the library was generated from. A mismatch warns clearly (this catches "tests ran against a stale environment"). The stage manifest lists the expected spec version per service. Also check that the reported `stage` matches the selected environment.
 - [ ] For the `full` project only, run each service's warm-up hook before any test starts, notably customers, whose Aurora database may be paused, with a generous timeout. Report how long it took. Skip warm-up for `smoke`. Reuse the stage readiness check's `--warmup` mode from Phase 1.
+- [ ] Resolve the feature flags the tests name (Phase 3) once, cache them for the run, and print them with the target environment. An unknown flag fails here, before any test starts.
 - [ ] Refuse to run the `full` project against a protected environment unless the explicit opt-in from Phase 3 is set.
 
 ### 3. Fixtures
@@ -50,6 +51,7 @@ Use vitest's `test.extend` to export a `test` function that tests import instead
 - [ ] `api`: the configured client for the current environment.
 - [ ] `uid`: a unique id generator (run id plus counter) so parallel runs never collide. Customer emails must come from it too. The email unique index covers deleted rows, so a deleted customer still holds its email, and deleting a customer never frees it.
 - [ ] `cleanup`: a registry where tests register undo actions as they create data. Actions run after each test, in reverse order, even when the test fails, and failures during cleanup are reported without hiding the original failure.
+- [ ] `flags`: the resolved feature flags for the run, with `isEnabled`, `require` and `requireOff` (Phase 3). A test that calls `flags.require('name')` is skipped with a reason when the flag is off. The reporter adds a summary of tests skipped because of a flag, grouped by flag.
 - [ ] `ctx`: run metadata (environment, run id, correlation id prefix) for log correlation.
 - [ ] Document the pattern: create through the API, register cleanup immediately, then assert.
 
@@ -78,6 +80,8 @@ Write these against the three Storefront services. They should read like documen
 - [ ] **Cross-service flow:** create a customer, place an order with an idempotency key, poll until the order is `CONFIRMED`, advance the shipment with the admin client, and poll until the order is `SHIPPED` and then `DELIVERED`. Use `expectEventually`, never fixed sleeps. Polling timeouts come from the per-environment config, because the simulated carrier takes seconds in `dev` and minutes in `prod`.
 - [ ] **Idempotency:** repeat `createOrder` with the same key and assert that only one order exists.
 - [ ] Stretch: **Token refresh.** Against the mock OAuth2 server and a stub API, set a short token lifetime, make calls across the expiry, and assert that every call succeeds and that only the expected number of token requests were made.
+- [ ] **API versions** (against the library's fixture specs and local mock, because the Storefront serves one version of each service): call the same operation through `v1` and `v2`, assert each version's own response shape, and show that a field that exists only in `v2` is a type error on `v1`.
+- [ ] **Feature flags** (against the local mock, because the Storefront has no flags): one test written for the flag on and one for the flag off, each skipped with a reason in the other state. Run it with the flag in each state and check that the summary lists the skipped tests. Stretch: a test that sets the flag on the mock, with the change undone by `cleanup`, in a sequential project.
 - [ ] Each suite carries a comment explaining which library feature it demonstrates.
 
 ### 7. Prove compile-time safety
@@ -95,6 +99,8 @@ This is the demonstration that sells the approach.
 - Each test cleans up after itself, including when it fails.
 - The `smoke` project runs safely against a protected environment, and `full` refuses to.
 - Removing an operation from the spec makes the affected tests fail at typecheck, shown by an automated test.
+- The API version suite passes against the local mock, with `v1` and `v2` called side by side.
+- The feature flag suite passes with the flag on and with the flag off, and the run summary shows which tests were skipped for which flag.
 - A new contributor can write a test for a new endpoint using only `docs/writing-tests.md`.
 
 ## Risks and notes
@@ -103,4 +109,5 @@ This is the demonstration that sells the approach.
 - **Shared state.** Parallel files sharing data cause flaky failures. Keep unique ids and cleanup in the fixtures so test authors do not have to think about it.
 - **Eventual consistency.** If the demo backend is eventually consistent, polling helpers are not optional. Design the API and tests with that in mind.
 - **Environment drift.** The version check in global setup exists to catch stale deployments before they produce misleading failures.
+- **Flags hiding failures.** A flag check that skips a test can hide a regression if the flag state is wrong. That is why unknown flags fail instead of defaulting to off, and why skips are listed in the summary.
 - **Fixture overreach.** Keep fixtures small. If they grow into a framework, tests stop being readable.

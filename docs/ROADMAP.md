@@ -23,6 +23,19 @@ const missing = await apitest.ordersService.orders.getOrder({ orderId: 'does-not
 expect(missing.status).toBe(404);
 ```
 
+Two more cases are common in real test suites, and the library handles both, although the Storefront has neither. They are proven with the library's own fixture specs and a local mock:
+
+```ts
+// A service that serves two API versions side by side gets a version segment (decision record 0013).
+const widgets = await apitest.widgetsService.v2.widgets.listWidgets({});
+
+// A test that depends on a feature flag is skipped, with a reason, when the flag is off (decision record 0014).
+test('express shipping is offered', async ({ api, flags }) => {
+  flags.require('express-shipping');
+  // ...
+});
+```
+
 Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. The backend's `dev` stage exists only while one of its pull request runs is deployed, and `prod` is flagged protected, so it is read-only (smoke tests only) unless explicitly unlocked. The services authenticate with API keys sent in the `x-api-key` header, chosen per caller type (`tests` by default, `admin` only where a test needs it). A stretch goal adds automatic bearer token acquisition and refresh, for services that use tokens instead of keys.
 
 ## Assumptions
@@ -65,14 +78,17 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 - [ ] `generate` script with validate, clean, generate, format steps
 - [ ] `generate:check` that fails when committed output is stale
 - [ ] Determinism test: two runs, identical output
+- [ ] Several API versions of one service generated side by side (`<service>-service-v<N>.yaml`), proven with fixture specs (decision record 0013)
 - [ ] Custom Mustache template overrides only if the Phase 2 decision rule justifies them (default is none)
 
 ### Phase 3: Client facade and configuration
 - [ ] Document the call shape: one request object in, `{ status, headers, data }` out, no throw on HTTP error statuses
 - [ ] Typed facade over generated API classes, no hand edits per endpoint
+- [ ] Version segment in the facade for services with several API versions (`apitest.widgetsService.v2.widgets.listWidgets`)
 - [ ] Environment config and selection, fed by the backend's stage manifest
 - [ ] Auth providers: static API key in `x-api-key` (the Storefront default), plus none, bearer, and custom function, with named caller types (`tests`, `admin`)
 - [ ] Warm-up hook for services with cold dependencies (an idle Aurora database)
+- [ ] Feature flags: a pluggable flag provider (static per-environment map by default), flags resolved once per run, and helpers that skip a test with a stated reason (decision record 0014)
 - [ ] Stretch: automatic bearer token acquisition and refresh (OAuth2 client credentials) when no API key is configured, built and tested against a mock OAuth2 server first
 - [ ] Middleware: correlation id, redacted logging, timeouts, opt-in retries
 - [ ] Protected-environment guard
@@ -83,12 +99,13 @@ Point the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. T
 - [ ] Fixtures: client, unique ids, cleanup registry
 - [ ] Test data builders typed from generated models
 - [ ] Example suites: smoke, CRUD lifecycle, negative cases, pagination, auth
+- [ ] Example suites for API versions and feature flags, against the fixture specs and a local mock, with a run summary of tests skipped for a flag
 - [ ] Stretch: token refresh suite against a mock OAuth2 server
 - [ ] Proof that a removed or changed operation fails at typecheck
 
 ### Phase 5: Spec-change workflow, CI, release
 - [ ] `sync-specs` script and documented update steps
-- [ ] Breaking-change detection on spec changes
+- [ ] Breaking-change detection on spec changes, including an added or removed API version of a service
 - [ ] CI: lint, typecheck, unit, generate-check, and a scheduled or on-demand smoke run against `prod`
 - [ ] Semver rules driven by spec diff, changelog entry per release
 - [ ] Publish pipeline and an example consumer project
