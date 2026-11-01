@@ -16,7 +16,7 @@ defineScenario('ogen-axios', (baseUrl, apiKey) => {
     const version = new VersionApi(config, baseUrl, instance);
     return {
         getVersion: async () => toResult(await version.getVersion()),
-        listOrders: async ({ limit, status }) => toResult(await orders.listOrders({ limit, status })),
+        listOrders: async ({ limit, status, cursor }) => toResult(await orders.listOrders({ limit, status, cursor })),
         createOrder: async ({ idempotencyKey, customerId }) => toResult(await orders.createOrder({ idempotencyKey, createOrderRequest: { customerId, lines: [{ sku: 'sku-1', quantity: 1 }] } })),
         getOrder: async ({ orderId }) => toResult(await orders.getOrder({ orderId })),
         cancelOrder: async ({ orderId }) => toResult(await orders.cancelOrder({ orderId }))

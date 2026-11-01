@@ -13,7 +13,7 @@ defineScenario('orval', (baseUrl, apiKey) => {
     const options = (headers: Record<string, string> = {}): RequestInit => ({ headers: { 'x-api-key': apiKey, ...headers } });
     return {
         getVersion: async () => toResult(await getVersion(options())),
-        listOrders: async ({ limit, status }) => toResult(await listOrders({ limit, status }, options())),
+        listOrders: async ({ limit, status, cursor }) => toResult(await listOrders({ limit, status, cursor }, options())),
         createOrder: async ({ idempotencyKey, customerId }) => toResult(await createOrder({ customerId, lines: [{ sku: 'sku-1', quantity: 1 }] }, options({ 'Idempotency-Key': idempotencyKey }))),
         getOrder: async ({ orderId }) => toResult(await getOrder({ orderId }, options())),
         cancelOrder: async ({ orderId }) => toResult(await cancelOrder({ orderId }, options()))

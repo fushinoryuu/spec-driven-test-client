@@ -14,7 +14,7 @@ defineScenario('openapi-fetch', (baseUrl, apiKey) => {
     const client = createClient<paths>({ baseUrl, headers: { 'x-api-key': apiKey } });
     return {
         getVersion: async () => toResult(await client.GET('/version')),
-        listOrders: async ({ limit, status }) => toResult(await client.GET('/orders', { params: { query: { limit, status } } })),
+        listOrders: async ({ limit, status, cursor }) => toResult(await client.GET('/orders', { params: { query: { limit, status, cursor } } })),
         createOrder: async ({ idempotencyKey, customerId }) => toResult(await client.POST('/orders', { params: { header: { 'Idempotency-Key': idempotencyKey } }, body: { customerId, lines: [{ sku: 'sku-1', quantity: 1 }] } })),
         getOrder: async ({ orderId }) => toResult(await client.GET('/orders/{orderId}', { params: { path: { orderId } } })),
         cancelOrder: async ({ orderId }) => toResult(await client.POST('/orders/{orderId}/cancel', { params: { path: { orderId } } }))

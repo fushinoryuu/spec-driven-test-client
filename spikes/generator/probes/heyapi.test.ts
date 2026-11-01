@@ -15,7 +15,7 @@ defineScenario('heyapi', (baseUrl, apiKey) => {
     const client = createClient(createConfig({ baseUrl, auth: apiKey }));
     return {
         getVersion: async () => toResult(await Version.getVersion({ client })),
-        listOrders: async ({ limit, status }) => toResult(await Orders.listOrders({ limit, status }, { client })),
+        listOrders: async ({ limit, status, cursor }) => toResult(await Orders.listOrders({ limit, status, cursor }, { client })),
         createOrder: async ({ idempotencyKey, customerId }) => toResult(await Orders.createOrder({ 'Idempotency-Key': idempotencyKey, createOrderRequest: { customerId, lines: [{ sku: 'sku-1', quantity: 1 }] } }, { client })),
         getOrder: async ({ orderId }) => toResult(await Orders.getOrder({ orderId }, { client })),
         cancelOrder: async ({ orderId }) => toResult(await Orders.cancelOrder({ orderId }, { client }))

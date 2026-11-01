@@ -12,7 +12,7 @@ export interface Result {
 /** One adapter per candidate. Each method makes the generated call with the generator's own request object. */
 export interface Adapter {
     getVersion(): Promise<Result>;
-    listOrders(request: { limit: number; status: 'PAID' }): Promise<Result>;
+    listOrders(request: { limit: number; status: 'PAID'; cursor?: string }): Promise<Result>;
     createOrder(request: { idempotencyKey: string; customerId: string }): Promise<Result>;
     getOrder(request: { orderId: string }): Promise<Result>;
     cancelOrder(request: { orderId: string }): Promise<Result>;
@@ -54,19 +54,28 @@ export function defineScenario(candidate: string, makeAdapter: (baseUrl: string,
             expect(JSON.parse(request?.body ?? '{}')).toMatchObject({ customerId: 'cus_1' });
         });
 
-        it('forwards query parameters', async () => {
-            const response = await adapter.listOrders({ limit: 5, status: 'PAID' });
-            expect(response.status).toBe(200);
-            const request = seen.findLast((r) => r.method === 'GET' && r.url.startsWith('/orders?'));
-            const query = new URL(request?.url ?? '', 'http://x').searchParams;
-            expect(query.get('limit')).toBe('5');
-            expect(query.get('status')).toBe('PAID');
+        it('forwards query parameters, including an enum and the cursor of a paginated list', async () => {
+            const queryOfLastList = () => new URL(seen.findLast((r) => r.method === 'GET' && r.url.startsWith('/orders?'))?.url ?? '', 'http://x').searchParams;
+
+            const first = await adapter.listOrders({ limit: 5, status: 'PAID' });
+            expect(first.status).toBe(200);
+            expect(queryOfLastList().get('limit')).toBe('5');
+            expect(queryOfLastList().get('status')).toBe('PAID');
+            expect(queryOfLastList().get('cursor')).toBeNull();
+            const cursor = (first.data as { nextCursor: string | null }).nextCursor;
+            expect(cursor).toBe('page-2');
+
+            const second = await adapter.listOrders({ limit: 5, status: 'PAID', cursor: cursor ?? undefined });
+            expect(second.status).toBe(200);
+            expect(queryOfLastList().get('cursor')).toBe('page-2');
+            expect((second.data as { nextCursor: string | null }).nextCursor).toBeNull();
         });
 
-        it('reports how date-time and nullable fields come back', async () => {
+        it('reports how enum, date-time and nullable fields come back', async () => {
             const response = await adapter.getOrder({ orderId: 'ord_1' });
             expect(response.status).toBe(200);
-            const data = response.data as { createdAt: unknown; note: unknown };
+            const data = response.data as { status: unknown; createdAt: unknown; note: unknown };
+            expect(data.status).toBe('PAID');
             observations.dateTimeAs = data.createdAt instanceof Date ? 'Date' : typeof data.createdAt;
             observations.nullablePreserved = data.note === null;
         });

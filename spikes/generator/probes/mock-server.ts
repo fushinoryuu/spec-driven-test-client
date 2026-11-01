@@ -48,7 +48,8 @@ export async function startMockServer(): Promise<{ baseUrl: string; seen: SeenRe
             if (req.method === 'GET' && path === '/version') return send(200, { buildId: 'abc123', specVersion: '0.0.1', stage: 'dev' });
             if (req.headers['x-api-key'] !== API_KEY) return send(403, problem(403, 'Forbidden'));
 
-            if (req.method === 'GET' && path === '/orders') return send(200, { items: [order], nextCursor: null });
+            // Two pages: the first returns a cursor, and asking for that cursor returns the last page.
+            if (req.method === 'GET' && path === '/orders') return send(200, { items: [order], nextCursor: url.searchParams.get('cursor') === 'page-2' ? null : 'page-2' });
             if (req.method === 'POST' && path === '/orders') {
                 const key = req.headers['idempotency-key'];
                 if (typeof key !== 'string') return send(400, problem(400, 'Missing Idempotency-Key'));

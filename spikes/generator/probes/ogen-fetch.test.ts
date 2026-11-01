@@ -26,7 +26,7 @@ defineScenario('ogen-fetch', (baseUrl, apiKey) => {
     const version = new VersionApi(config);
     return {
         getVersion: () => call(() => version.getVersionRaw()),
-        listOrders: ({ limit, status }) => call(() => orders.listOrdersRaw({ limit, status })),
+        listOrders: ({ limit, status, cursor }) => call(() => orders.listOrdersRaw({ limit, status, cursor })),
         createOrder: ({ idempotencyKey, customerId }) => call(() => orders.createOrderRaw({ idempotencyKey, createOrderRequest: { customerId, lines: [{ sku: 'sku-1', quantity: 1 }] } })),
         getOrder: ({ orderId }) => call(() => orders.getOrderRaw({ orderId })),
         cancelOrder: ({ orderId }) => call(() => orders.cancelOrderRaw({ orderId }))
