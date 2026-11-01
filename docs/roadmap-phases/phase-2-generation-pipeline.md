@@ -2,7 +2,7 @@
 
 The core selling point: a repeatable, one-command path from OpenAPI specs to typed clients. When this phase is done, adding or updating a service means changing a spec file and running one script.
 
-This phase is written for OpenAPI Generator. If the Phase 0 spike chooses a TypeScript-native generator instead, tasks 1 to 3 and 7 change (no Java, no jar, no Mustache templates, a different config file), and the rest still holds.
+This phase was drafted for OpenAPI Generator. The Phase 0 spike chose hey-api `openapi-ts` instead ([0002](../decisions/0002-generator.md)), so tasks 1 to 3 and 7 change (no Java, no jar, no Mustache templates, and `openapi-ts.config.mjs` instead of `openapitools.json`) and are rewritten when the Phase 2 tickets are filed. The rest still holds.
 
 ## Goals
 
@@ -83,6 +83,8 @@ Support `npm run generate -- --service orders-service` for a single service.
 - [ ] Generate all three Storefront specs (customers, orders, shipping) and confirm that adding a service requires only dropping its spec into `specs/` and rerunning `generate`. Name spec files `<service>-service.yaml` (for example `orders-service.yaml`), which becomes the facade name (`ordersService`).
 - [ ] Check that the three services do not collide on model or class names. All three specs share an error schema and a `version` tag (so a `VersionApi` class), so expect collisions. Decide on per-service naming (a model and API name prefix, or a package option) and record it in decision record 0011. Do this early, because it changes every generated import.
 
+- [ ] **Several API versions of one service.** Some services serve two API versions at once (`/v1/...` and `/v2/...`), and a test suite has to exercise both while clients migrate. The Storefront does not do this, so prove it with two small fixture specs under `tests/fixtures/specs/` (for example `widgets-service-v1.yaml` and `widgets-service-v2.yaml`) and a local mock. Decide the rule and record it in decision record 0013. The proposal: a spec file named `<service>-service-v<N>.yaml` is version `v<N>` of that service, each version is generated into its own folder so models and errors never collide between versions, and a service is either unversioned or versioned, never both. An API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. Phase 3 adds the version segment to the facade.
+
 ### 6. Pipeline tests
 
 - [ ] **Determinism:** run generation twice, assert identical output.
@@ -90,6 +92,7 @@ Support `npm run generate -- --service orders-service` for a single service.
 - [ ] **Surface check:** for each Storefront spec, assert that the expected operations exist (for example `getVersion` on all three, plus `createCustomer`, `createOrder`, `getShipment`) by importing the generated module.
 - [ ] **Removal:** remove an operation from a copy of the spec and assert it disappears from the output.
 - [ ] **Invalid spec:** a malformed spec fails with a useful error and does not touch existing output.
+- [ ] **API versions:** generate the two versioned fixture specs side by side, assert that each version lands in its own folder with no name collisions, that an operation present only in `v2` is absent from `v1`, and that `generate:check` covers both.
 - [ ] Keep these fast by using tiny specs under `tests/fixtures/specs/`.
 
 ### 7. Custom templates (optional, default is none)
@@ -121,6 +124,7 @@ If you do need an override:
 ## Acceptance criteria
 
 - `npm run generate` produces typed clients for all three Storefront specs, with no manual steps and no name collisions.
+- Two fixture specs for one service (`-v1` and `-v2`) generate side by side with no name collisions.
 - `npm run generate:check` passes on a clean tree and fails after editing a generated file.
 - Pipeline tests pass in CI.
 - Upgrading the generator version is a one-line change plus a regenerate, and the diff is reviewable.

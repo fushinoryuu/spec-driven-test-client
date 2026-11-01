@@ -7,7 +7,6 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 - A repo that builds, lints, typechecks, and runs vitest from day one.
 - Decisions recorded as short decision records, so changing direction later is a conscious act.
 - Evidence for the generator choice instead of a guess.
-- Clear boundaries about what is being recreated and what is not.
 
 ## Deliverables
 
@@ -74,6 +73,8 @@ Each record: context, options considered, decision, consequences. Keep them to a
 | 0010 | Call shape | One request object per call (no positional parameters), a `{ status, headers, data }` response, and no throw on HTTP error statuses. Positional parameters were hard to read, and a new parameter early in a signature broke many tests. A 404 or 409 is an expected outcome in a negative test, not an exception (Phase 3) | Phase 0 |
 | 0011 | Naming across services | Decided in Phase 2: the three specs share an error schema name and a `version` tag, which collide in generated code | Phase 2 |
 | 0012 | Package version vs spec versions | Decided in Phase 5: independent semver, with spec versions listed in the changelog | Phase 5 |
+| 0013 | Several API versions of one service | Decided in Phase 2, built into the facade in Phase 3: a spec named `<service>-service-v<N>.yaml` is version `v<N>`, generated into its own folder, and the facade adds a version segment (`apitest.widgetsService.v2.widgets.listWidgets`). Different from a spec's `info.version` and from the package version | Phase 2 |
+| 0014 | Feature flags in tests | Decided in Phase 3: a pluggable flag provider with a static per-environment map as the default, flags resolved once per run, and helpers that skip a test with a stated reason. Skips are reported. Where flag values come from is a backend decision | Phase 3 |
 
 ### 3. Generator spike
 
@@ -101,11 +102,11 @@ This section applies only if the spike chooses OpenAPI Generator. It is a Java j
 ## Acceptance criteria
 
 - `npm test`, lint, and typecheck all pass on a fresh clone.
-- Decision records 0001 to 0008 and 0010 exist, with the generator record backed by spike notes. Records 0009 (only if the stretch goal is pursued), 0011 (Phase 2) and 0012 (Phase 5) are written in their own phases.
+- Decision records 0001 to 0008 and 0010 exist, with the generator record backed by spike notes. Records 0009 (only if the stretch goal is pursued), 0011 and 0013 (Phase 2), 0014 (Phase 3) and 0012 (Phase 5) are written in their own phases.
 - If OpenAPI Generator was chosen, anyone can tell from the README which Java or Docker option to use.
 
 ## Risks and notes
 
-- **Silent drift from "faithful replica."** If the original used custom templates or a different call shape, note it in the decision record rather than guessing.
+- **Unrecorded assumptions.** If a choice depends on something not yet verified, such as a generator option or a backend behavior, say so in the decision record instead of guessing.
 - **Spike sprawl.** Compare on one spec and stop. The goal is a decision, not a survey.
 - **Java friction.** If Java setup becomes the main barrier for contributors, the Docker path should be the documented default.

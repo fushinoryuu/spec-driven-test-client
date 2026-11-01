@@ -37,7 +37,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ### 1. Spec sync
 
-- [ ] `sync-specs` pulls specs from their source into `specs/`. For Storefront, the backend publishes its three specs and a stage manifest as a build artifact or release asset and records the source commit. Copy them in, or fetch them at a given ref, naming each file `<service>-service.yaml`. Until the backend publishes those artifacts (its Phase 5), fetch the bundled files from a git ref of the backend repo's `specs/` folder. Record the source, ref, and spec version for each in `specs/sources.json` so the origin of every spec is traceable. Pull all three together, so a change that spans services is one library change.
+- [ ] `sync-specs` pulls specs from their source into `specs/`. For Storefront, the backend publishes its three specs and a stage manifest as a build artifact or release asset and records the source commit. Copy them in, or fetch them at a given ref, naming each file `<service>-service.yaml` (or `<service>-service-v<N>.yaml` for a service that serves several API versions, decision record 0013). Until the backend publishes those artifacts (its Phase 5), fetch the bundled files from a git ref of the backend repo's `specs/` folder. Record the source, ref, and spec version for each in `specs/sources.json` so the origin of every spec is traceable. Pull all three together, so a change that spans services is one library change.
 - [ ] Fail clearly if a source is unreachable. Never leave a half-updated `specs/` folder.
 - [ ] The same script pulls the stage manifest (service names, base URLs per stage, secret names, deployed spec versions), so the library's environment config does not duplicate it.
 - [ ] Document how a team with many services would point the same script at many repos or an internal spec registry.
@@ -46,8 +46,9 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 - [ ] Compare the old and new spec for each service on every PR that touches `specs/`. Evaluate an existing OpenAPI diff tool before writing your own (oasdiff is one to look at). A custom script based on a parsed spec is fine for a small demo if no tool fits, but then the rules must be tested.
 - [ ] Classify changes: operation added (non-breaking), operation removed (breaking), required parameter or required request field added (breaking), response field removed or type changed (breaking), optional field added (non-breaking), description-only change (patch).
+- [ ] API versions (decision record 0013): a new `-v<N>` spec for a service is non-breaking (a new namespace, so minor), removing a version's spec is breaking (major), and changes inside one version are classified by the rules above, per version. Compare each version against its own previous spec, not against another version.
 - [ ] Output a machine-readable report and a short human summary, posted on the PR.
-- [ ] Unit test the classification with small before and after spec pairs for every rule, plus identical specs.
+- [ ] Unit test the classification with small before and after spec pairs for every rule, plus identical specs and the added and removed API version cases.
 
 ### 3. Versioning and changelog
 

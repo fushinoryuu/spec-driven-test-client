@@ -1,6 +1,6 @@
 # 0006: Publish target
 
-- Status: Provisional. Confirmed in Phase 5.
+- Status: Provisional, leaning to public npm. Confirmed in Phase 5.
 - Date: 2026-10-30
 
 ## Context
@@ -14,7 +14,13 @@ The library is meant to be installed by test projects, so it needs a registry. N
 
 ## Decision
 
-Not made yet, on purpose. Both options stay open until Phase 5, where the release workflow is built and the choice is recorded here with the facts checked at that time (name availability, install friction, provenance support, cost).
+**Leaning to public npm**, because it is the easier and free choice. It stays provisional until Phase 5, where the release workflow is built and the choice is confirmed here with the facts checked at that time (name availability, install friction, provenance support, cost).
+
+Why it leans that way:
+
+- The unscoped name `spec-driven-test-client` was free on npm when this was written (2026-10-30), so the package keeps the plain name that `npm install spec-driven-test-client` implies.
+- Consumers need no configuration. `npm install` reads the default registry, so a test project's `package.json` and `.npmrc` stay as they are.
+- npm can use more than one registry at the same time, because a scope can be mapped to its own registry in `.npmrc` (for example `@owner:registry=https://npm.pkg.github.com`). GitHub Packages relies on that: the package must be scoped, and installing it needs that mapping plus an authentication token, even for a public package. That is one more setup step for every consumer and every CI job.
 
 Until then:
 
@@ -26,4 +32,4 @@ Until then:
 
 - If GitHub Packages is chosen, the package name changes to a scoped name, which touches `package.json`, the README and the docs.
 - If public npm is chosen, the name must be checked for availability first, and the license (`GPL-3.0-only`) is public with the package.
-- Phase 5 updates this record's status to Accepted and fills in the decision.
+- Phase 5 updates this record's status to Accepted, confirms or reverses the leaning, and adds the facts checked at that time.
