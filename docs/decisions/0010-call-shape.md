@@ -25,10 +25,10 @@ Option 3.
 - **Failures:** HTTP error statuses do not throw. A library error is thrown only when there is no HTTP response: a network error, a timeout, or the protected-environment guard blocking a write. That error carries the request summary and correlation id, and has no status.
 
 ```ts
-const found = await apitest.customersService.customers.getCustomer({ customerId });
+const found = await apitest.customersService.v1.customers.getCustomer({ customerId });
 const customer = expectStatus(200, found); // typed body
 
-const missing = await apitest.customersService.customers.getCustomer({ customerId: 'unknown' });
+const missing = await apitest.customersService.v1.customers.getCustomer({ customerId: 'unknown' });
 expect(missing.status).toBe(404);
 ```
 

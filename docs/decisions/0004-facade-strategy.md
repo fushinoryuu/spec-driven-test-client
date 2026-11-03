@@ -18,11 +18,12 @@ The generator emits one API class per spec tag, each taking a configuration obje
 
 Option 1. The facade lives in `src/client/` (Phase 3). Names come from the structure of the specs:
 
-| Part | Comes from |
-|---|---|
-| service (`ordersService`) | the spec file name, one registry entry per service |
-| group (`orders`) | the OpenAPI tag, which becomes a generated API class |
-| operation (`createOrder`) | the `operationId` |
+| Part                      | Comes from                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| service (`ordersService`) | the spec file name without the version suffix, one registry entry per service                         |
+| version (`v1`)            | the version suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec |
+| group (`orders`)          | the OpenAPI tag, which becomes a generated API class                                                  |
+| operation (`createOrder`) | the `operationId`                                                                                     |
 
 Transport concerns (auth, correlation id, timeouts, the protected-environment guard) are applied through the generated runtime's custom fetch or middleware hook, not by forking the runtime.
 
@@ -30,6 +31,6 @@ Transport concerns (auth, correlation id, timeouts, the protected-environment gu
 
 - The mapped types depend on how the chosen generator exports its classes. The spike ([0002](0002-generator.md)) must verify the mapping works with its output.
 - Mapped types can become brittle. They stay small and are covered by `expectTypeOf` tests. If inference breaks down, the fallback is a one-line-per-group registry (still no per-endpoint code).
-- A service that serves several API versions gets one more segment between the service and the group (`apitest.widgetsService.v2.widgets.listWidgets`). The rules are decision record 0013, written in Phase 2.
+- A versioned service has one more segment between the service and the group (`apitest.ordersService.v1.orders.getOrder`, `apitest.ordersService.v0.operations.getVersion`). Every Storefront service is versioned. A spec file with no suffix has no version segment, which stays supported for services that are not versioned. The rules are decision record 0013, written in Phase 2.
 - Adding a service is one registry line. Adding an operation needs only a spec change and a regenerate.
 - The facade is step 2, and the transport hooks step 3, of the decision rule for shaping generated output in [0008](0008-custom-generator-templates.md), so they are tried before any template override.

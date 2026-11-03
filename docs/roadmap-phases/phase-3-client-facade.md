@@ -1,6 +1,6 @@
 # Phase 3: Client Facade and Configuration
 
-The generated code gives you one API class per spec tag. This phase wraps it so test authors write `apitest.ordersService.orders.createOrder(...)`, switch environments with one variable, and cannot accidentally write to a protected environment.
+The generated code gives you one API class per spec tag. This phase wraps it so test authors write `apitest.ordersService.v1.orders.createOrder(...)`, switch environments with one variable, and cannot accidentally write to a protected environment.
 
 ## Goals
 
@@ -11,33 +11,33 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Facade and service registry | `src/client/facade.ts`, `src/client/services.ts` |
-| Environment config | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
-| Auth providers | `src/client/auth.ts` |
-| Fetch wrapper (middleware) | `src/client/transport.ts` |
-| Call normalization and response type | `src/client/response.ts` |
-| Protected-environment guard | `src/client/safety.ts` |
-| Feature flag providers and helpers | `src/client/flags.ts` |
-| Public exports | `src/index.ts` |
-| Unit tests | `tests/unit/client/` |
-| API reference doc (including versioned services) | `docs/client-api.md` |
-| Feature flag guide | `docs/feature-flags.md` |
+| Deliverable                                      | Location                                                                                                 |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Facade and service registry                      | `src/client/facade.ts`, `src/client/services.ts`                                                         |
+| Environment config                               | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
+| Auth providers                                   | `src/client/auth.ts`                                                                                     |
+| Fetch wrapper (middleware)                       | `src/client/transport.ts`                                                                                |
+| Call normalization and response type             | `src/client/response.ts`                                                                                 |
+| Protected-environment guard                      | `src/client/safety.ts`                                                                                   |
+| Feature flag providers and helpers               | `src/client/flags.ts`                                                                                    |
+| Public exports                                   | `src/index.ts`                                                                                           |
+| Unit tests                                       | `tests/unit/client/`                                                                                     |
+| API reference doc (including versioned services) | `docs/client-api.md`                                                                                     |
+| Feature flag guide                               | `docs/feature-flags.md`                                                                                  |
 
 ## Public API shape
 
-The public shape is `library.service.group.operation(request)`. Map it to the spec:
+The public shape is `library.service.version.group.operation(request)`. Map it to the spec:
 
-| Part | Comes from |
-|---|---|
-| `apitest` | the library's exported client |
-| `.ordersService` | the service (one spec file, one registry entry). The name comes from the spec file name, so `orders-service.yaml` becomes `ordersService` |
-| `.v1` (only for a service that serves several API versions) | the API version. It comes from a spec file named `<service>-service-v<N>.yaml`, so `widgets-service-v1.yaml` gives `widgetsService.v1`. A service with a single spec has no version segment. See Versioned services below |
-| `.version` | the endpoint group (an OpenAPI `tag`, which becomes a generated API class) |
-| `.getVersion(...)` | the operation (`operationId`) |
+| Part             | Comes from                                                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apitest`        | the library's exported client                                                                                                                                                                                                                                                                                                                          |
+| `.ordersService` | the service (one registry entry per service). The name comes from the spec file name without the version suffix, so `orders-service-v1.yaml` becomes `ordersService`                                                                                                                                                                                   |
+| `.v1`            | the API version. It comes from the suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec of each service. Every Storefront service is versioned. A spec file with no suffix has no version segment, which stays supported for services that are not versioned (decision record 0013). See Versioned services below |
+| `.orders`        | the endpoint group (an OpenAPI `tag`, which becomes a generated API class)                                                                                                                                                                                                                                                                             |
+| `.getOrder(...)` | the operation (`operationId`)                                                                                                                                                                                                                                                                                                                          |
 
-The Storefront services give calls such as `apitest.customersService.customers.createCustomer(...)`, `apitest.ordersService.orders.createOrder(...)`, and `apitest.shippingService.shipments.getShipment(...)`. Every service also has a `version` group, which also holds the health route (and, on customers, `getReadiness`). The `Service` suffix avoids the awkward `apitest.customers.customers` reading when a service and its main tag share a name.
+The Storefront services give calls such as `apitest.customersService.v1.customers.createCustomer(...)`, `apitest.ordersService.v1.orders.createOrder(...)`, and `apitest.shippingService.v1.shipments.getShipment(...)`. The operational routes are on `v0`, in a group called `operations`: `apitest.ordersService.v0.operations.getVersion()` and, on customers, `apitest.customersService.v0.operations.getReadiness()`. The `Service` suffix avoids the awkward `apitest.customers.customers` reading when a service and its main tag share a name.
 
 ### Call shape (decision record 0010)
 
@@ -46,10 +46,10 @@ The Storefront services give calls such as `apitest.customersService.customers.c
 - **Failures:** HTTP error statuses do not throw. A library error is thrown only when there is no HTTP response: a network error, a timeout, or the protected-environment guard blocking a write.
 
 ```ts
-const found = await apitest.customersService.customers.getCustomer({ customerId });
+const found = await apitest.customersService.v1.customers.getCustomer({ customerId });
 const customer = expectStatus(200, found); // typed body
 
-const missing = await apitest.customersService.customers.getCustomer({ customerId: 'unknown' });
+const missing = await apitest.customersService.v1.customers.getCustomer({ customerId: 'unknown' });
 expect(missing.status).toBe(404);
 ```
 
@@ -61,7 +61,7 @@ The generator emits one class per tag, typically named `<Tag>Api`, each taking a
 
 The facade is step 2 of the Phase 2 decision rule for shaping generated output, and the transport hooks below are step 3. Use them before reaching for custom generator templates.
 
-- [ ] Registry: one line per service mapping a name to its generated module (`ordersService: () => import('../generated/orders-service')`), or auto-discovery from `src/generated/*`.
+- [ ] Registry: one line per service mapping a name to the generated module of each of its versions (`ordersService: { v0: () => import('../generated/orders-service-v0'), v1: () => import('../generated/orders-service-v1') }`), or auto-discovery from `src/generated/*`, where the folder name gives the service and the version.
 - [ ] Mapped types so the facade is fully typed with no codegen of its own: take the keys of the generated module that end in `Api`, strip the suffix, lower-case the first letter, and map to `InstanceType` of the class. The mapped type also rewrites each operation's signature to the call shape above (one request object in, response object out). Verify this works with the chosen generator's export style in the Phase 0 spike.
 - [ ] Call normalization: a runtime wrapper around each generated method turns the generator's result into `{ status, headers, data }` without throwing on HTTP statuses. How depends on the generator chosen: call the raw-response variants (fetch-style clients) or turn off status validation (axios-style clients). The hand-written code lives in the wrapper, never per endpoint.
 - [ ] Lazy construction: API classes are created on first access and share one `Configuration` per service per environment.
@@ -69,21 +69,22 @@ The facade is step 2 of the Phase 2 decision rule for shaping generated output, 
 
 ### Versioned services
 
-Some services serve two API versions at once (`/v1/...` and `/v2/...`) while their clients migrate, and a test suite has to exercise both. Decision record 0013 (written in Phase 2) fixes the rules, and this section builds them into the facade. The Storefront does not do this, so the behavior is proven with the library's fixture specs and a local mock, not against the Storefront. The API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist.
+Every Storefront service is versioned (decision record 0013, written in Phase 2). The version is a segment between the service and the group, taken from the spec file name, so `orders-service-v1.yaml` gives `apitest.ordersService.v1`. `v0` is the reserved operational spec of each service, with the health, version and (customers only) readiness operations. The API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. The Storefront adds `/v2` next to `/v1` in its Phase 5, so until then only the fixtures (a small stub service with `v0`, `v1` and `v2` specs) show two business versions side by side.
 
 ```ts
-// widgets-service-v1.yaml and widgets-service-v2.yaml, both generated and both callable
-const old = await apitest.widgetsService.v1.widgets.listWidgets({});
-const current = await apitest.widgetsService.v2.widgets.listWidgets({ pageSize: 20 });
+await apitest.ordersService.v0.operations.getVersion(); // operational: which spec versions the service serves
+await apitest.ordersService.v1.orders.getOrder({ orderId }); // business, version 1
+await apitest.ordersService.v2.orders.getOrder({ orderId }); // business, version 2 (once the backend ships it)
 ```
 
-- [ ] The registry derives the service and its versions from the spec file names (`<service>-service-v<N>.yaml`). Adding a version is dropping in a spec file and regenerating, with no per-version code.
-- [ ] Mapped types add the version segment only for a service that has versions, so a single-spec service keeps its flat shape (`apitest.ordersService.orders.getOrder`). Each version carries its own request and response types, so a field that exists only in `v2` is a type error on `v1`.
+- [ ] The registry derives the service and its versions from the spec file names (`<service>-service-v<N>.yaml`). Adding a version is dropping in a spec file and regenerating, with no per-version code. A spec file with no suffix is a service with no version segment, kept for fixtures and for services that are not versioned.
+- [ ] Mapped types add the version segment for a versioned service. Each version carries its own request and response types, so a field that exists only in `v2` is a type error on `v1`, and `.v3` on a service with two versions is a type error.
 - [ ] One `Configuration` per service, version and environment. All versions share the service's base URL by default, because the version is part of the path in the spec, and config can override a base URL for one version.
 - [ ] Auth, the protected-environment guard, logging, timeouts and the warm-up hook apply to every version of a service the same way, with per-version overrides only where config sets them.
-- [ ] A clear error when a version is unknown at run time (for example a version named in a base URL override), listing the versions that exist. At compile time, `.v3` on a service with two versions is a type error.
-- [ ] Open for decision record 0013: whether to offer a `latest` alias for the highest version, and whether the version check in global setup runs per version.
-- [ ] Unit tests with the fixture specs and the local mock: both versions are callable and reach their own paths, `expectTypeOf` shows different request types per version, a single-spec service has no version segment, and an unknown version fails clearly.
+- [ ] A clear error when a version is unknown at run time (for example a version named in a base URL override), listing the versions that exist.
+- [ ] **Version check.** The readiness check and global setup compare each entry of `specVersions` (from `GET /v0/version`) with the `info.version` of the spec whose file suffix matches the key. They match by suffix, never by the major of `info.version`, because the 0.x business drafts use `/v1`. A prefix that the service serves but the library has no spec for, or the other way round, is reported.
+- [ ] No `latest` alias: `v0` is operational, so "the highest version" is ambiguous, and a test names the version it exercises.
+- [ ] Unit tests with the fixture specs and the stub service: both business versions are callable and reach their own paths, `expectTypeOf` shows different request types per version, a spec with no suffix has no version segment, an unknown version fails clearly, and the version check reports a missing or extra prefix.
 
 ### Environments
 
@@ -99,7 +100,7 @@ const current = await apitest.widgetsService.v2.widgets.listWidgets({ pageSize: 
 - [ ] Built-ins: static API key (header name configurable, default `x-api-key`, which is what the Storefront backend uses), none, bearer token from an environment variable, and a custom async function (for fetching a token). Automatic bearer token acquisition and refresh is the stretch goal described below.
 - [ ] Token caching with expiry for the custom-function provider, so tests do not fetch a token per request. A static API key needs no caching.
 - [ ] Per-service and per-environment overrides.
-- [ ] **Named caller types.** The backend issues separate keys for `tests` and `admin` (and `services`, which tests should never use). Config maps a caller type to a secret per environment, with `tests` as the default. A test that needs admin behavior, such as advancing a shipment through the simulation endpoint, asks for an admin client explicitly, for example `apitest.as('admin').shippingService.simulation.advanceShipment(...)`. An admin client is created only on request, so ordinary tests never hold admin credentials.
+- [ ] **Named caller types.** The backend issues separate keys for `tests` and `admin` (and `services`, which tests should never use). Config maps a caller type to a secret per environment, with `tests` as the default. A test that needs admin behavior, such as advancing a shipment through the simulation endpoint, asks for an admin client explicitly, for example `apitest.as('admin').shippingService.v1.simulation.advanceShipment(...)`. An admin client is created only on request, so ordinary tests never hold admin credentials.
 - [ ] Secrets come from environment variables or the test runner's secret store, never from files in the repo. Keys are retrieved after deploy by the backend's key retrieval script and are never printed. Environment variables are named `APITEST_<ENV>_<CALLER>_API_KEY` with the environment and caller type in upper case, for example `APITEST_DEV_TESTS_API_KEY` and `APITEST_PROD_ADMIN_API_KEY` (`APITEST` follows the placeholder library name). A local untracked `.env` file may set them. The `services` caller type is not supported: the library never loads that key.
 
 ### Stretch: bearer token acquisition and refresh
@@ -129,14 +130,14 @@ Real services usually use bearer tokens, not API keys. When no API key is config
 
 **Where tokens could come from.** The library only needs an OAuth2 client-credentials token endpoint. Which provider issues the tokens, and any authorizer the backend's APIs would need, are backend decisions outside this library's scope. Cost is the open question, so the options are listed with it:
 
-| Option | Cost | Notes |
-|---|---|---|
-| Mock OAuth2 server inside the tests (for example the `oauth2-mock-server` npm package) | Free | Supports client credentials and refresh grants, starts in-process from a test, and lets you change token expiry and claims before signing, which makes expiry and refresh easy to test. Its tokens cannot be verified against a real issuer, so this proves the library, not a backend. Recommended for building and testing this feature |
-| Keycloak (or similar) in Docker on your machine | Free | A realistic identity provider for local demos. Heavier to run and not part of a hosted demo |
-| Amazon Cognito user pool with a resource server and client credentials | Small, but not zero | When checked in late October 2026, M2M token requests were charged per successful token response (the pricing page example is $0.00225 per request in US East), with no free tier for token requests and no monthly charge per app client (that charge was removed in November 2025). A pool with no end users stays within the free monthly active user tier. With in-memory caching a test run requests only a couple of tokens, so a demo should cost cents. Check current pricing and keep the budget alarm. It also means the backend must add a Cognito authorizer to its REST APIs |
-| Another hosted identity provider that supports client credentials (for example Microsoft Entra ID) | Check current pricing | Limits and terms change, so check before relying on one |
-| A small token endpoint you write yourself (a Lambda that signs short-lived tokens, plus a Lambda authorizer) | Pennies | Works for a demo, but it is hand-rolled auth. Label it demo-only and never present it as a pattern to copy |
-| Keep API keys on the deployed demo and show bearer tokens only against the mock server | Free | The least effort, and it still demonstrates the library capability |
+| Option                                                                                                       | Cost                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mock OAuth2 server inside the tests (for example the `oauth2-mock-server` npm package)                       | Free                  | Supports client credentials and refresh grants, starts in-process from a test, and lets you change token expiry and claims before signing, which makes expiry and refresh easy to test. Its tokens cannot be verified against a real issuer, so this proves the library, not a backend. Recommended for building and testing this feature                                                                                                                                                                                                                                                 |
+| Keycloak (or similar) in Docker on your machine                                                              | Free                  | A realistic identity provider for local demos. Heavier to run and not part of a hosted demo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Amazon Cognito user pool with a resource server and client credentials                                       | Small, but not zero   | When checked in late October 2026, M2M token requests were charged per successful token response (the pricing page example is $0.00225 per request in US East), with no free tier for token requests and no monthly charge per app client (that charge was removed in November 2025). A pool with no end users stays within the free monthly active user tier. With in-memory caching a test run requests only a couple of tokens, so a demo should cost cents. Check current pricing and keep the budget alarm. It also means the backend must add a Cognito authorizer to its REST APIs |
+| Another hosted identity provider that supports client credentials (for example Microsoft Entra ID)           | Check current pricing | Limits and terms change, so check before relying on one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| A small token endpoint you write yourself (a Lambda that signs short-lived tokens, plus a Lambda authorizer) | Pennies               | Works for a demo, but it is hand-rolled auth. Label it demo-only and never present it as a pattern to copy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Keep API keys on the deployed demo and show bearer tokens only against the mock server                       | Free                  | The least effort, and it still demonstrates the library capability                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Recommendation:** build and test the token provider against the mock server. Decide later, as a separate optional step, whether to wire a real identity provider into the backend. That choice belongs to the backend project, because it would need a token issuer and a matching authorizer. Record it in decision record 0009 if it is ever made.
 
@@ -174,28 +175,36 @@ Generated clients usually throw on non-2xx responses. This library does not (dec
 
 The customers service uses an Aurora Serverless v2 database that can pause when idle. The first request after a pause typically takes about 15 seconds, and 30 seconds or more after a long idle period. The API Gateway integration timeout is 29 seconds by default, and API Gateway returns a 504 when it is exceeded, so a long resume could surface as a 504. The backend's intended design is for the readiness Lambda to give up before the gateway does and return a 503 in the shared error shape, so the library treats both 503 and 504 as "retry". What API Gateway returns if the readiness Lambda times out before the gateway does is unverified, and the retry rule handles it the same way. The backend has not settled whether `prod` may pause at all (its ADR 0007), so the library always plans for a cold first call.
 
-- [ ] An optional per-service `warmup` hook (a call to a readiness operation: customers `getReadiness`, which needs a key and touches the database) that global setup runs before the `full` project, never before `smoke`. It retries on 503 and 504 within an overall time budget of roughly 60 to 90 seconds (a budget, not an attempt count, to cover a resume of 30 seconds or more), honoring a `Retry-After` header in seconds when present. The backend proposes that header but has not put it in the spec yet, so do not depend on it. A cold database then reads as a slow start and not a failure. This is the only place the library retries on those statuses by default.
+- [ ] An optional per-service `warmup` hook (a call to a readiness operation: `apitest.customersService.v0.operations.getReadiness`, which needs a key and touches the database) that global setup runs before the `full` project, never before `smoke`. It retries on 503 and 504 within an overall time budget of roughly 60 to 90 seconds (a budget, not an attempt count, to cover a resume of 30 seconds or more), honoring a `Retry-After` header in seconds when present. The backend proposes that header but has not put it in the spec yet, so do not depend on it. A cold database then reads as a slow start and not a failure. This is the only place the library retries on those statuses by default.
 - [ ] Per-service default timeouts, with a longer allowance for the first call to customers.
 - [ ] Retries stay off by default. Warm-up is the intended fix, not blanket retries. Nothing calls the readiness operation on a schedule, because that keeps the database awake, so scheduled `smoke` runs skip warm-up.
 
 ### Feature flags
 
-Behavior that sits behind a feature flag differs by environment. A test written for the new behavior fails, or passes for the wrong reason, where the flag is off. The library lets a test ask for a flag, and skip with a stated reason when the flag is in the wrong state (decision record 0014, written in this phase). The Storefront has no feature flags, so the behavior is proven against a local mock. Where flag values come from in a real system is the backend's decision, so the library reads them through a provider and any source fits.
+Behavior that sits behind a feature flag differs by environment. A test written for the new behavior fails, or passes for the wrong reason, where the flag is off. The library lets a test ask for a flag, and skip with a stated reason when the flag is in the wrong state (decision record 0014, written in this phase).
+
+The Storefront uses LaunchDarkly, with two environments, `dev` and `prod`. The backend exposes **no endpoint** for flag state, so the library reads it from LaunchDarkly itself, through a provider. The Storefront's flags are plain booleans with no targeting rules, so a flag's state is its environment's `on` value. The library only reads flags and never writes one: every backend pull request run shares the `dev` environment, and the library's runs are not coordinated with them. The backend documents flag-gated behavior in the spec as a response (for example `advanceShipment` returns 404 with a `Problem` when the simulation flag is off), so a test can assert the documented response for whichever state the flag is in. Flag keys are decided in the backend's Phase 1, so the names below are illustrative.
 
 ```ts
+test('advancing a shipment depends on the simulation flag', async ({ api, flags }) => {
+    const response = await api.as('admin').shippingService.v1.simulation.advanceShipment({ shipmentId });
+    expect(response.status).toBe(flags.isEnabled('shipment-simulation') ? 200 : 404);
+});
+
 test('express shipping is offered', async ({ api, flags }) => {
-  flags.require('express-shipping'); // skips with a reason when the flag is off in this environment
-  // ...
+    flags.require('express-shipping'); // skips with a reason when the flag is off in this environment
+    // ...
 });
 ```
 
-- [ ] A flag provider is a function `(flag, context) => boolean | Promise<boolean>`, where the context holds the environment and caller type. It may also offer `set(flag, value, context)`.
-- [ ] Built-ins: a static map per environment in the config (the default), an environment variable override named `APITEST_FLAG_<NAME>` for ad hoc runs, and a custom async function, for example one that calls a generated operation such as `getFeatures` on a service, or a flag service SDK.
+- [ ] A flag provider is a function `(flag, context) => boolean | Promise<boolean>`, where the context holds the environment and caller type. Providers are read-only.
+- [ ] Built-ins: a static map per environment in the config (the default, and what the stub service uses), an environment variable override named `APITEST_FLAG_<NAME>` for ad hoc runs, a **LaunchDarkly provider**, and a custom async function for any other source.
+- [ ] The LaunchDarkly provider reads a flag's state from the LaunchDarkly REST API with a read-only API token (the Reader role should be enough, and the backend confirms it when the token is created). The token comes from an environment variable, is never printed or logged, and is redacted like the other secrets. The project key, the environment key per stage and the flag keys come from config, fed by the backend's hand-off doc. It takes the environment's `on` value, and fails with a clear message for a flag that has targeting rules or is not a boolean, because it supports only the simple flags the Storefront uses. It retries only on rate limiting, with a cap. Check the endpoint and field names against the current LaunchDarkly documentation when building it. Whether REST calls count against the free plan's connection limits is unverified, so check it before relying on it.
 - [ ] Flags are resolved once in global setup (Phase 4) and cached for the run, never once per test. The startup message lists the resolved flags for the selected environment.
 - [ ] A flag the provider does not know is an error naming the flag and the environment, not a silent "off". A flag declared optional in config may default to off.
 - [ ] Helpers: `flags.isEnabled(name)`, `flags.require(name)` and `flags.requireOff(name)`, which skip the test with a reason. Flag names are a union type declared in the config, so a typo fails at typecheck.
 - [ ] Skips are visible. The run summary lists the tests skipped because of a flag, grouped by flag, so a flag that quietly disables a whole suite shows up.
-- [ ] Stretch: `flags.set(name, value)` for providers that support it. It works on non-protected environments only (the protected-environment guard applies), registers its undo in the Phase 4 cleanup registry, and is used only by tests in a sequential project so a changed flag cannot leak into tests running in parallel.
+- [ ] No flag writes. A provider has no `set`, and nothing in the library changes a flag's state.
 - [ ] Document the providers, the helpers and the skip reporting in `docs/feature-flags.md`.
 
 ### Protected-environment guard
@@ -217,18 +226,18 @@ Integration tests that can point at any environment need a seatbelt.
 - [ ] Stretch: implement automatic bearer token acquisition and refresh (see the stretch section above).
 - [ ] Implement the transport wrapper with correlation id, logging, timeout, optional retry, and the guard.
 - [ ] Implement the facade with mapped types and call normalization, and a typed `createClient` for custom setups.
-- [ ] Add the version segment for services with several API versions, and write decision record 0013 with the Phase 2 naming rules.
-- [ ] Implement the feature flag providers and helpers, and write decision record 0014.
+- [ ] Add the version segment (every Storefront service is versioned) and the per-version spec version check, and write decision record 0013 with the Phase 2 naming rules.
+- [ ] Implement the feature flag providers (static map, environment variable, LaunchDarkly, custom function) and helpers, and write decision record 0014.
 - [ ] Export a ready-to-use default client for the common case.
-- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, the facade's lazy construction, versioned services, and the flag providers (known and unknown flags, one lookup per flag per run, and the guard blocking `set` on a protected environment).
-- [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.orders.createOrder` accepts the generated request type and returns the response object, with `data` typed from the generated models and narrowed by `ok`.
+- [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, the facade's lazy construction, versioned services, and the flag providers (known and unknown flags, one lookup per flag per run, the LaunchDarkly provider against a fake `fetch` including rules it does not support, and the token never appearing in output).
+- [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.v1.orders.createOrder` accepts the generated request type and returns the response object, with `data` typed from the generated models and narrowed by `ok`.
 
 ## Acceptance criteria
 
 - A test can call any generated operation through `apitest.<service>.<group>.<operation>()` with full autocomplete.
 - Adding an operation to a Storefront spec (for example the planned `getOrderTimeline` in v1.1.0) and regenerating makes it available with zero facade edits.
 - Switching `TEST_ENV` changes the target for every call.
-- A service with two API versions is callable as `apitest.<service>.v1.<group>.<operation>()` and `.v2`, each with its own types, and a single-spec service keeps its flat shape.
+- Every versioned service is callable as `apitest.<service>.v1.<group>.<operation>()` (and `.v0` for the operational routes, and `.v2` once it exists), each version with its own types.
 - A test that requires a feature flag is skipped, with a reason, when the flag is off, and the unknown-flag and skip-reporting cases are covered by unit tests.
 - A write against a protected environment is blocked by default and covered by a unit test.
 - Unit tests for config, auth, transport, and the guard pass in CI without network access.
