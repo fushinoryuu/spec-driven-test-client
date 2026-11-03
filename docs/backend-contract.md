@@ -86,7 +86,7 @@ Gaps found so far were raised and settled in the exchange of relays on 2026-11-0
 - **How to get the keys.** Run the backend's key retrieval script after a stage is deployed. Keys are issued per stage and per caller type. The `dev` stage is recreated on every backend pull request run, so its keys and base URLs differ each time: take fresh values on every run.
 - **Where they go.** Keys live in environment variables, or in the CI secret store. They never appear in a file in the repository.
 - **Variable names.** `APITEST_<ENV>_<CALLER>_API_KEY`, with the environment and caller type in upper case: `APITEST_DEV_TESTS_API_KEY`, `APITEST_PROD_TESTS_API_KEY`, `APITEST_DEV_ADMIN_API_KEY`.
-- **Local use.** Put them in an untracked `.env` file at the repository root. `.env` and `.env.*` are ignored by git (see `.gitignore`).
+- **Local use.** Copy [.env.example](../.env.example) to `.env` at the repository root and fill in the values. `.env` and `.env.*` are ignored by git (see `.gitignore`), except `.env.example`, which lists the variable names with no values.
 - **Which key.** `tests` is enough for most work, and it is the default. `admin` is only for the shipping simulation tests, on `dev`. The `services` key is for service-to-service calls and is never used by tests, and the library never loads it.
 - **The flag token.** A read-only LaunchDarkly REST API token, the built-in Reader role (the backend confirms it when the token is created). It is a secret like the keys: an environment variable, never printed, never committed. The variable name is set in Phase 3.
 - **Rotation.** A link to the backend's key rotation runbook goes here once it exists.
