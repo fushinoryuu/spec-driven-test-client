@@ -1,6 +1,6 @@
 # spec-driven-test-client
 
-Generates typed clients for backend services from their OpenAPI specs, so integration tests can call `apitest.service.group.operation(request)` and get autocomplete and compile-time checks. The workflow is: change the spec, regenerate, publish.
+Generates typed clients for backend services from their OpenAPI specs, so integration tests can call `apitest.service.version.group.operation(request)` and get autocomplete and compile-time checks. The workflow is: change the spec, regenerate, publish.
 
 The project is at the start of its roadmap. See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan and the phases.
 

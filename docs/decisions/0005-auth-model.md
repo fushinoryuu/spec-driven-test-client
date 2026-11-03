@@ -17,7 +17,7 @@ The Storefront services authenticate with API Gateway API keys sent in the `x-ap
 
 Option 2. An auth provider is a function `(context) => headers | Promise<headers>`. Built-ins are a static API key (header name configurable, default `x-api-key`), none, a bearer token from an environment variable, and a custom async function with token caching. Providers can be set per service and per environment.
 
-Named caller types select the secret: `tests` is the default, and `admin` is requested explicitly, for example `apitest.as('admin')`, so ordinary tests never hold admin credentials. The `services` caller type is not supported, and the library never loads that key.
+Named caller types select the secret: `tests` is the default, and `admin` is requested explicitly, for example `apitest.as('admin').shippingService.v1.simulation.advanceShipment(...)`, so ordinary tests never hold admin credentials. The `services` caller type is not supported, and the library never loads that key.
 
 Secrets come from environment variables or the test runner's secret store, never from files in the repo. The variable names are `APITEST_<ENV>_<CALLER>_API_KEY` (for example `APITEST_DEV_TESTS_API_KEY`), where `APITEST` follows the placeholder library name and changes if it is renamed. A local untracked `.env` file may set them. Keys never appear in logs.
 
