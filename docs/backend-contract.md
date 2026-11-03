@@ -1,0 +1,93 @@
+# Backend contract
+
+What the library needs from the Storefront backend ([storefront-backend](https://github.com/fushinoryuu/storefront-backend)), what the backend has agreed to provide, and the status of each need. The needs come from [Phase 1](roadmap-phases/phase-1-demo-target.md). The library raises gaps in the backend project instead of working around them.
+
+**Last checked: 2026-11-02.** The agreed answers come from the exchange of relays between the two projects on that date. On the backend's `main` there were still no published specs, no hand-off document (`docs/spec-handoff.md`, ticket BEP-19), no key retrieval script and no key rotation runbook. So every row below is **not yet published** until the thing itself exists, and the agreed answer is recorded next to it.
+
+Statuses: **provided** (published and checked), **partial**, **missing**, **not yet published** (agreed, not yet there to check).
+
+## Needs
+
+| Need | What the library needs | Backend's answer | Status | Action |
+|---|---|---|---|---|
+| Spec files | OpenAPI 3.0.3, standalone bundles, `specs/<service>-service-v<N>.yaml`, `info.version` starting at 0.1.0 and bumped on every change | Accepted. Names are final: `customers-service-v0.yaml`, `customers-service-v1.yaml`, and the same for orders and shipping, with `orders-service-v2.yaml` later. Bundles are committed on `main` | Not yet published | Pull from the backend's `main` (ALP-12). The backend announces a changed draft with its new `info.version` |
+| API versions | The version in the path, the file name and the spec's `info.version` agree. Each major is its own file | `/v1/...` now, `/v2/...` beside it later (its Phase 5). The major of `info.version` matches the prefix, except that the 0.x business drafts use `/v1`. `listProducts` is a `/v1` route | Not yet published | Check the prefixes in the drafts (ALP-12) |
+| Operational routes | Health, version and readiness separate from the business API | A reserved `v0` prefix with its own small spec per service: `/v0/health`, `/v0/version` and, customers only, `/v0/health/ready`. OperationIds `getHealth`, `getVersion`, `getReadiness` under the tag `operations`. The `v1` and `v2` specs contain none of these routes. `v0` stays at 0.x | Not yet published | Check the operationIds and the tag in the drafts (ALP-12) |
+| Error schema | One shared schema on every 4xx and on the 503s | Named `Problem` (not `Error`, which collides with the JavaScript global in generated code) | Not yet published | Check it in the drafts |
+| Examples | An example on every request body and every response, because the library's mocks serve them | Accepted, including the 4xx and 503 responses | Not yet published | Check it in the drafts (the mocks need it, ALP-14) |
+| Security scheme | A global `apiKey` scheme in the `x-api-key` header, with `security: []` on the open routes | Accepted | Not yet published | Check it in the drafts |
+| Spec style | `nullable: true` (the 3.0.3 form), string enums, `format: date-time`, no `servers` entry, no API Gateway extensions, `oneOf` or `anyOf` only with a discriminator | Accepted (the discriminator rule is a lint warning on their side). Base URLs come from the stage manifest | Not yet published | Check it in the drafts |
+| Pagination | `cursor` and `limit` query parameters, and a nullable `nextCursor` on the page envelope | Accepted | Not yet published | Check it in the drafts |
+| Idempotency | `Idempotency-Key` as a required header on `createOrder`, and the `Location` header documented on its 201 | Planned in its orders draft | Not yet published | Check it in the drafts |
+| Stage manifest | Service names, base URLs per stage, secret names per caller type, deployed spec versions | Planned in its Phase 5 | Not yet published | Use a static `config/environments.ts` until then (ALP-13). Moves to the manifest in Phase 3 |
+| API keys | `tests` for everything, `admin` for the shipping simulation endpoint, and never `services` | Issued per stage, retrieved with the backend's key retrieval script after deploy | Not yet published | Keys are documented below. The script and the rotation runbook are linked once they exist |
+| Version and health | Open routes (no key) that report the version the deployment serves | `GET /v0/version` returns the build id, the stage and `specVersions`, an object keyed by prefix that lists every prefix the service serves, for example `{"v0": "0.1.0", "v1": "0.1.0"}`. The keys equal the bundle file suffixes (a written acceptance criterion on their side) | Not yet published | The readiness check compares each entry with the spec whose file suffix matches the key (ALP-13) |
+| Cold-database readiness | A route that touches the database and returns 503 with a retry hint while the database resumes | `GET /v0/health/ready` (`getReadiness`, customers only). A `Retry-After` header in seconds is declared on the shared 503 response | Not yet published | Warm-up uses it (ALP-13, Phase 3) |
+| Feature flags | A way to read flag state | LaunchDarkly, with two environments (`dev`, `prod`). **No backend endpoint exposes flag state.** Flags are plain booleans with no targeting rules, so a flag's state is its environment's `on` value. The hand-off doc lists the project, environment keys and flag keys, not their state. The flag keys come with the backend's Phase 1 | Not yet published | The library reads flags from LaunchDarkly with a read-only token (Phase 3). The flag keys go in the library's config when they exist |
+| Flag-gated behavior | The behavior of a gated route in each state | Documented in the spec as a response, for example `advanceShipment` returns 404 with a `Problem` when the simulation flag is off | Not yet published | Tests assert the documented response for the state the flag is in |
+| Planned spec changes | Change notes for v1.1.0 and for the `v2` specs, per service | Planned in its Phase 5. It may pull the spec-edit part forward to BEP-19 | Not yet published | ALP-15 waits for them |
+| Hand-off document | A document that states where the specs are, how versions are bumped, and what is not available yet | `docs/spec-handoff.md`, with ticket BEP-19, after the three drafts | Not yet published | Check every row of this table against it when it exists |
+| Reporting problems | A channel for spec problems | GitHub issues in the backend repository | Provided | Raise spec problems there, and reference the issue in the table below |
+
+## Naming rule
+
+Bundled specs are named `<service>-service-v<N>.yaml`. The facade name is the camel-cased file name without the version suffix (`orders-service-v1.yaml` gives `ordersService`), and the suffix is the version segment (`v1`). The file suffix, the path prefix and the key in `specVersions` agree. The backend confirmed this on 2026-11-02 and the names are final.
+
+| Spec file | Calls look like |
+|---|---|
+| `customers-service-v0.yaml` | `apitest.customersService.v0.operations.getReadiness()` |
+| `customers-service-v1.yaml` | `apitest.customersService.v1.customers.createCustomer({ ... })` |
+| `orders-service-v0.yaml` | `apitest.ordersService.v0.operations.getVersion()` |
+| `orders-service-v1.yaml` | `apitest.ordersService.v1.orders.createOrder({ ... })` |
+| `shipping-service-v1.yaml` | `apitest.shippingService.v1.shipments.getShipment({ ... })` |
+| `orders-service-v2.yaml` (later) | `apitest.ordersService.v2.orders.createOrder({ ... })` |
+
+## Assumptions the library makes about the drafts
+
+Each of these is checked against the real drafts in ALP-12, and the docs are updated wherever a draft differs. The backend has confirmed the first nine in its replies, but nothing can be checked until the drafts are published.
+
+| Assumption | If it is wrong |
+|---|---|
+| The operationIds are `getHealth`, `getVersion` and `getReadiness`, under the tag `operations` | Rename them in the docs and tests |
+| The shared error schema is named `Problem` and appears on every 4xx and 503 | Raise it as a GitHub issue |
+| `listCustomers` hides deleted customers by default, and `status=deleted` shows them | Cleanup checks already use tracked ids, so only the docs change |
+| A `Retry-After` header in seconds is declared on the shared 503 response | The warm-up falls back to a fixed retry interval |
+| `specVersions` keys equal the bundle file suffixes | Raise it as a GitHub issue. The version check depends on it |
+| The business drafts at 0.x use `/v1`, and `/v0` holds only the operational routes | Update the version check, which matches by file suffix and not by the major of `info.version` |
+| Every request body and response has an example | The mock for that route is empty. Raise it |
+| There is no `servers` entry, and `oneOf` or `anyOf` always has a discriminator | Raise it. The generator handles undiscriminated unions worst |
+| Flags are plain booleans and the Reader role can read them | The LaunchDarkly provider fails with a clear message for a flag with rules. Revisit the provider |
+| `createOrder` has the required `Idempotency-Key` header and a documented `Location` header on its 201 | Raise it |
+| The flag-gated responses (such as the 404 on `advanceShipment`) are documented on the route | The flag-aware tests have nothing to assert. Raise it |
+
+## Gaps
+
+Gaps found so far were raised and settled in the exchange of relays on 2026-11-02, so they have no GitHub issue. Spec problems found from now on go in GitHub issues in the backend repository, and are added here with the issue number.
+
+| Gap | Resolution | Where |
+|---|---|---|
+| Bundles were to be named `<service>-service.yaml`, which cannot hold two versions of a service | Closed. Every bundle carries its version: `<service>-service-v<N>.yaml` | Backend reply, 2026-11-02 |
+| `GET /version` returned a single `specVersion`, which cannot report two API versions | Closed. It returns `specVersions`, keyed by prefix | Backend reply, 2026-11-02 |
+| Health and version routes were planned in every version's spec | Closed. They move to a reserved `v0` prefix with its own spec per service | Backend reply, 2026-11-02 |
+| The shared schema named `Error` collides with the JavaScript global in generated code | Closed. It is named `Problem` | Backend reply, 2026-11-02 |
+| The shared tag for the operational routes was `version`, which read badly under `v0` | Closed. The tag is `operations` | Backend reply, 2026-11-02 |
+| No backend endpoint exposes feature flag state | Closed by design. The library reads LaunchDarkly. The backend documents flag-gated behavior in the spec | Backend reply, 2026-11-02 |
+| Flag writes from a test would affect every backend pull request run that shares the `dev` LaunchDarkly environment | Closed. Flag writes are unsupported, and the library never writes flags | Backend reply, 2026-11-02 |
+| The hand-off document does not exist yet | Open. Tracked by the backend ticket BEP-19 | BEP-19 |
+| The three drafts and the lint and bundle tooling do not exist yet | Open. Tracked by the backend tickets BEP-15 to BEP-18. The shipping draft comes first | BEP-15 to BEP-18 |
+| The stage manifest, the key retrieval script and the key rotation runbook are not published | Open. The manifest is in the backend's Phase 5, and the library uses static config until then | Backend roadmap |
+| The change notes for v1.1.0 and the `v2` specs are not written | Open. Planned in the backend's Phase 5, possibly pulled forward to BEP-19 | Backend roadmap, BEP-19 |
+| The flag keys are not decided, and the Reader role is not confirmed for the token | Open. The keys come with the backend's Phase 1, and the role is confirmed when the token is created | Backend roadmap |
+| Unverified on the backend side: what API Gateway returns when the readiness function times out before the gateway does | Not a library gap. The warm-up treats 503 and 504 the same way | Backend roadmap |
+| Unverified on the backend side: whether LaunchDarkly REST calls count against the free plan's connection limits | Not a library gap. Check before relying on it (Phase 3) | Backend reply, 2026-11-02 |
+
+## API keys and the flag token
+
+- **How to get the keys.** Run the backend's key retrieval script after a stage is deployed. Keys are issued per stage and per caller type. The `dev` stage is recreated on every backend pull request run, so its keys and base URLs differ each time: take fresh values on every run.
+- **Where they go.** Keys live in environment variables, or in the CI secret store. They never appear in a file in the repository.
+- **Variable names.** `APITEST_<ENV>_<CALLER>_API_KEY`, with the environment and caller type in upper case: `APITEST_DEV_TESTS_API_KEY`, `APITEST_PROD_TESTS_API_KEY`, `APITEST_DEV_ADMIN_API_KEY`.
+- **Local use.** Put them in an untracked `.env` file at the repository root. `.env` and `.env.*` are ignored by git (see `.gitignore`).
+- **Which key.** `tests` is enough for most work, and it is the default. `admin` is only for the shipping simulation tests, on `dev`. The `services` key is for service-to-service calls and is never used by tests, and the library never loads it.
+- **The flag token.** A read-only LaunchDarkly REST API token, the built-in Reader role (the backend confirms it when the token is created). It is a secret like the keys: an environment variable, never printed, never committed. The variable name is set in Phase 3.
+- **Rotation.** A link to the backend's key rotation runbook goes here once it exists.
+- **No secret in the repository.** No key or token value appears in any file. If one is committed by mistake, rotate it, because git history keeps it.
