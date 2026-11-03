@@ -11,17 +11,17 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Spec sync script | `scripts/sync-specs.ts` |
-| Spec diff and version-bump script | `scripts/spec-diff.ts`, `scripts/next-version.ts` |
-| CI workflows | `.github/workflows/ci.yml`, `release.yml` |
-| Changelog generation | `scripts/changelog.ts`, `CHANGELOG.md` |
-| Build and packaging config | `package.json` exports, build config |
-| Example consumer | `examples/consumer/` |
-| Recipe for a project that consumes the package (the backend's Storefront suites) | `docs/backend-setup.md` |
-| Spec update runbook | `docs/updating-specs.md` |
-| Demo script | `docs/demo-script.md` |
+| Deliverable                                                                      | Location                                          |
+| -------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Spec sync script                                                                 | `scripts/sync-specs.ts`                           |
+| Spec diff and version-bump script                                                | `scripts/spec-diff.ts`, `scripts/next-version.ts` |
+| CI workflows                                                                     | `.github/workflows/ci.yml`, `release.yml`         |
+| Changelog generation                                                             | `scripts/changelog.ts`, `CHANGELOG.md`            |
+| Build and packaging config                                                       | `package.json` exports, build config              |
+| Example consumer                                                                 | `examples/consumer/`                              |
+| Recipe for a project that consumes the package (the backend's Storefront suites) | `docs/backend-setup.md`                           |
+| Spec update runbook                                                              | `docs/updating-specs.md`                          |
+| Demo script                                                                      | `docs/demo-script.md`                             |
 
 ## The workflow
 

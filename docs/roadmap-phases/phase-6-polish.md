@@ -11,14 +11,14 @@ Make the project easy to understand and easy to try. A reader should get the ide
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Final README | `README.md` |
-| Pipeline and architecture diagram | `docs/architecture.md` (Mermaid) |
-| Demo recording or annotated transcript | `docs/demo/` |
-| Measured results | `docs/results.md` |
-| Decision records, finalized | `docs/decisions/` |
-| Limitations and roadmap | `docs/limitations.md` |
+| Deliverable                            | Location                         |
+| -------------------------------------- | -------------------------------- |
+| Final README                           | `README.md`                      |
+| Pipeline and architecture diagram      | `docs/architecture.md` (Mermaid) |
+| Demo recording or annotated transcript | `docs/demo/`                     |
+| Measured results                       | `docs/results.md`                |
+| Decision records, finalized            | `docs/decisions/`                |
+| Limitations and roadmap                | `docs/limitations.md`            |
 
 ## Tasks
 

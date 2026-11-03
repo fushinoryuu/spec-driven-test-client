@@ -13,18 +13,18 @@ The helpers are part of the published package (`spec-driven-test-client/testing`
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Vitest config for this repository's tests | `vitest.config.ts` |
-| Global setup | `src/testing/global-setup.ts` |
-| Fixtures | `src/testing/fixtures.ts` |
-| Assertion helpers | `src/testing/expect.ts` |
-| Test data builders | `src/testing/builders/` |
-| Stub service for the example suites (versioned fixture specs, state, idempotency, flags, cold start) | `tests/stub/`, specs in `tests/fixtures/specs/` |
-| Example suites | `tests/examples/` |
-| Storefront-shaped read-only examples, run against the spec-driven mocks | `tests/examples/storefront/` |
-| Public testing entry point | `src/testing/index.ts` (exported as `spec-driven-test-client/testing`) |
-| Authoring guide, including guidance for the backend's Storefront suites | `docs/writing-tests.md` |
+| Deliverable                                                                                          | Location                                                               |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Vitest config for this repository's tests                                                            | `vitest.config.ts`                                                     |
+| Global setup                                                                                         | `src/testing/global-setup.ts`                                          |
+| Fixtures                                                                                             | `src/testing/fixtures.ts`                                              |
+| Assertion helpers                                                                                    | `src/testing/expect.ts`                                                |
+| Test data builders                                                                                   | `src/testing/builders/`                                                |
+| Stub service for the example suites (versioned fixture specs, state, idempotency, flags, cold start) | `tests/stub/`, specs in `tests/fixtures/specs/`                        |
+| Example suites                                                                                       | `tests/examples/`                                                      |
+| Storefront-shaped read-only examples, run against the spec-driven mocks                              | `tests/examples/storefront/`                                           |
+| Public testing entry point                                                                           | `src/testing/index.ts` (exported as `spec-driven-test-client/testing`) |
+| Authoring guide, including guidance for the backend's Storefront suites                              | `docs/writing-tests.md`                                                |
 
 ## Tasks
 
@@ -34,8 +34,8 @@ The helpers are part of the published package (`spec-driven-test-client/testing`
 - [ ] Sensible defaults for suites that call a service: a longer test timeout, retries at the runner level only when explicitly enabled, and sequential execution within a file.
 - [ ] Reporters: the default reporter locally, plus JUnit or JSON output in CI for test result tooling.
 - [ ] Document the project layout a consuming project should use, and show it working in the example consumer (Phase 5):
-  - `smoke`: read-only checks that never touch the Aurora database, safe for any environment including protected ones. They call the operational routes (`apitest.ordersService.v0.operations.getVersion`, `getHealth`) and database-free routes that need the `tests` key, such as `listProducts`. They skip the Aurora warm-up, so a scheduled run never wakes the cluster.
-  - `full`: lifecycle and negative tests that write data, for non-protected environments only (in practice `dev` during a backend pull request run), unless the explicit unlock from Phase 3 is set.
+    - `smoke`: read-only checks that never touch the Aurora database, safe for any environment including protected ones. They call the operational routes (`apitest.ordersService.v0.operations.getVersion`, `getHealth`) and database-free routes that need the `tests` key, such as `listProducts`. They skip the Aurora warm-up, so a scheduled run never wakes the cluster.
+    - `full`: lifecycle and negative tests that write data, for non-protected environments only (in practice `dev` during a backend pull request run), unless the explicit unlock from Phase 3 is set.
 - [ ] Environment selection documented in one place: `TEST_ENV=dev` for the full suites while a dev stack is deployed, and `TEST_ENV=prod` with the `smoke` project for the smoke checks against `prod`.
 
 ### 2. Global setup

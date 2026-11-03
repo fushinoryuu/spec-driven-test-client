@@ -2,9 +2,6 @@
 src/generated/
 
 # Prose, workflows and license are not part of the code format check
-docs/
-.github/
 LICENSE
-README.md
 
 package-lock.json

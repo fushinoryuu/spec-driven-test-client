@@ -18,12 +18,12 @@ The generator emits one API class per spec tag, each taking a configuration obje
 
 Option 1. The facade lives in `src/client/` (Phase 3). Names come from the structure of the specs:
 
-| Part | Comes from |
-|---|---|
-| service (`ordersService`) | the spec file name without the version suffix, one registry entry per service |
-| version (`v1`) | the version suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec |
-| group (`orders`) | the OpenAPI tag, which becomes a generated API class |
-| operation (`createOrder`) | the `operationId` |
+| Part                      | Comes from                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| service (`ordersService`) | the spec file name without the version suffix, one registry entry per service                         |
+| version (`v1`)            | the version suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec |
+| group (`orders`)          | the OpenAPI tag, which becomes a generated API class                                                  |
+| operation (`createOrder`) | the `operationId`                                                                                     |
 
 Transport concerns (auth, correlation id, timeouts, the protected-environment guard) are applied through the generated runtime's custom fetch or middleware hook, not by forking the runtime.
 

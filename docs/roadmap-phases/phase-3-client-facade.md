@@ -11,31 +11,31 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Facade and service registry | `src/client/facade.ts`, `src/client/services.ts` |
-| Environment config | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
-| Auth providers | `src/client/auth.ts` |
-| Fetch wrapper (middleware) | `src/client/transport.ts` |
-| Call normalization and response type | `src/client/response.ts` |
-| Protected-environment guard | `src/client/safety.ts` |
-| Feature flag providers and helpers | `src/client/flags.ts` |
-| Public exports | `src/index.ts` |
-| Unit tests | `tests/unit/client/` |
-| API reference doc (including versioned services) | `docs/client-api.md` |
-| Feature flag guide | `docs/feature-flags.md` |
+| Deliverable                                      | Location                                                                                                 |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Facade and service registry                      | `src/client/facade.ts`, `src/client/services.ts`                                                         |
+| Environment config                               | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
+| Auth providers                                   | `src/client/auth.ts`                                                                                     |
+| Fetch wrapper (middleware)                       | `src/client/transport.ts`                                                                                |
+| Call normalization and response type             | `src/client/response.ts`                                                                                 |
+| Protected-environment guard                      | `src/client/safety.ts`                                                                                   |
+| Feature flag providers and helpers               | `src/client/flags.ts`                                                                                    |
+| Public exports                                   | `src/index.ts`                                                                                           |
+| Unit tests                                       | `tests/unit/client/`                                                                                     |
+| API reference doc (including versioned services) | `docs/client-api.md`                                                                                     |
+| Feature flag guide                               | `docs/feature-flags.md`                                                                                  |
 
 ## Public API shape
 
 The public shape is `library.service.version.group.operation(request)`. Map it to the spec:
 
-| Part | Comes from |
-|---|---|
-| `apitest` | the library's exported client |
-| `.ordersService` | the service (one registry entry per service). The name comes from the spec file name without the version suffix, so `orders-service-v1.yaml` becomes `ordersService` |
-| `.v1` | the API version. It comes from the suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec of each service. Every Storefront service is versioned. A spec file with no suffix has no version segment, which stays supported for services that are not versioned (decision record 0013). See Versioned services below |
-| `.orders` | the endpoint group (an OpenAPI `tag`, which becomes a generated API class) |
-| `.getOrder(...)` | the operation (`operationId`) |
+| Part             | Comes from                                                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apitest`        | the library's exported client                                                                                                                                                                                                                                                                                                                          |
+| `.ordersService` | the service (one registry entry per service). The name comes from the spec file name without the version suffix, so `orders-service-v1.yaml` becomes `ordersService`                                                                                                                                                                                   |
+| `.v1`            | the API version. It comes from the suffix of the spec file (`orders-service-v1.yaml`). `v0` is the reserved operational spec of each service. Every Storefront service is versioned. A spec file with no suffix has no version segment, which stays supported for services that are not versioned (decision record 0013). See Versioned services below |
+| `.orders`        | the endpoint group (an OpenAPI `tag`, which becomes a generated API class)                                                                                                                                                                                                                                                                             |
+| `.getOrder(...)` | the operation (`operationId`)                                                                                                                                                                                                                                                                                                                          |
 
 The Storefront services give calls such as `apitest.customersService.v1.customers.createCustomer(...)`, `apitest.ordersService.v1.orders.createOrder(...)`, and `apitest.shippingService.v1.shipments.getShipment(...)`. The operational routes are on `v0`, in a group called `operations`: `apitest.ordersService.v0.operations.getVersion()` and, on customers, `apitest.customersService.v0.operations.getReadiness()`. The `Service` suffix avoids the awkward `apitest.customers.customers` reading when a service and its main tag share a name.
 
@@ -130,14 +130,14 @@ Real services usually use bearer tokens, not API keys. When no API key is config
 
 **Where tokens could come from.** The library only needs an OAuth2 client-credentials token endpoint. Which provider issues the tokens, and any authorizer the backend's APIs would need, are backend decisions outside this library's scope. Cost is the open question, so the options are listed with it:
 
-| Option | Cost | Notes |
-|---|---|---|
-| Mock OAuth2 server inside the tests (for example the `oauth2-mock-server` npm package) | Free | Supports client credentials and refresh grants, starts in-process from a test, and lets you change token expiry and claims before signing, which makes expiry and refresh easy to test. Its tokens cannot be verified against a real issuer, so this proves the library, not a backend. Recommended for building and testing this feature |
-| Keycloak (or similar) in Docker on your machine | Free | A realistic identity provider for local demos. Heavier to run and not part of a hosted demo |
-| Amazon Cognito user pool with a resource server and client credentials | Small, but not zero | When checked in late October 2026, M2M token requests were charged per successful token response (the pricing page example is $0.00225 per request in US East), with no free tier for token requests and no monthly charge per app client (that charge was removed in November 2025). A pool with no end users stays within the free monthly active user tier. With in-memory caching a test run requests only a couple of tokens, so a demo should cost cents. Check current pricing and keep the budget alarm. It also means the backend must add a Cognito authorizer to its REST APIs |
-| Another hosted identity provider that supports client credentials (for example Microsoft Entra ID) | Check current pricing | Limits and terms change, so check before relying on one |
-| A small token endpoint you write yourself (a Lambda that signs short-lived tokens, plus a Lambda authorizer) | Pennies | Works for a demo, but it is hand-rolled auth. Label it demo-only and never present it as a pattern to copy |
-| Keep API keys on the deployed demo and show bearer tokens only against the mock server | Free | The least effort, and it still demonstrates the library capability |
+| Option                                                                                                       | Cost                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mock OAuth2 server inside the tests (for example the `oauth2-mock-server` npm package)                       | Free                  | Supports client credentials and refresh grants, starts in-process from a test, and lets you change token expiry and claims before signing, which makes expiry and refresh easy to test. Its tokens cannot be verified against a real issuer, so this proves the library, not a backend. Recommended for building and testing this feature                                                                                                                                                                                                                                                 |
+| Keycloak (or similar) in Docker on your machine                                                              | Free                  | A realistic identity provider for local demos. Heavier to run and not part of a hosted demo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Amazon Cognito user pool with a resource server and client credentials                                       | Small, but not zero   | When checked in late October 2026, M2M token requests were charged per successful token response (the pricing page example is $0.00225 per request in US East), with no free tier for token requests and no monthly charge per app client (that charge was removed in November 2025). A pool with no end users stays within the free monthly active user tier. With in-memory caching a test run requests only a couple of tokens, so a demo should cost cents. Check current pricing and keep the budget alarm. It also means the backend must add a Cognito authorizer to its REST APIs |
+| Another hosted identity provider that supports client credentials (for example Microsoft Entra ID)           | Check current pricing | Limits and terms change, so check before relying on one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| A small token endpoint you write yourself (a Lambda that signs short-lived tokens, plus a Lambda authorizer) | Pennies               | Works for a demo, but it is hand-rolled auth. Label it demo-only and never present it as a pattern to copy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Keep API keys on the deployed demo and show bearer tokens only against the mock server                       | Free                  | The least effort, and it still demonstrates the library capability                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Recommendation:** build and test the token provider against the mock server. Decide later, as a separate optional step, whether to wire a real identity provider into the backend. That choice belongs to the backend project, because it would need a token issuer and a matching authorizer. Record it in decision record 0009 if it is ever made.
 
@@ -187,13 +187,13 @@ The Storefront uses LaunchDarkly, with two environments, `dev` and `prod`. The b
 
 ```ts
 test('advancing a shipment depends on the simulation flag', async ({ api, flags }) => {
-  const response = await api.as('admin').shippingService.v1.simulation.advanceShipment({ shipmentId });
-  expect(response.status).toBe(flags.isEnabled('shipment-simulation') ? 200 : 404);
+    const response = await api.as('admin').shippingService.v1.simulation.advanceShipment({ shipmentId });
+    expect(response.status).toBe(flags.isEnabled('shipment-simulation') ? 200 : 404);
 });
 
 test('express shipping is offered', async ({ api, flags }) => {
-  flags.require('express-shipping'); // skips with a reason when the flag is off in this environment
-  // ...
+    flags.require('express-shipping'); // skips with a reason when the flag is off in this environment
+    // ...
 });
 ```
 

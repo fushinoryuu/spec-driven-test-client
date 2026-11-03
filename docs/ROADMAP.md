@@ -15,7 +15,7 @@ const version = await apitest.ordersService.v0.operations.getVersion();
 expect(version.status).toBe(200);
 
 const created = await apitest.customersService.v1.customers.createCustomer({
-  createCustomerRequest: { firstName: 'Jane' }, // field names come from the generated request type
+    createCustomerRequest: { firstName: 'Jane' } // field names come from the generated request type
 });
 const customer = expectStatus(201, created); // the typed body, or a failure naming the status and correlation id
 
@@ -31,8 +31,8 @@ await apitest.ordersService.v2.orders.getOrder({ orderId });
 
 // A test that depends on a feature flag is skipped, with a reason, when the flag is off. The flag key is illustrative.
 test('express shipping is offered', async ({ api, flags }) => {
-  flags.require('express-shipping');
-  // ...
+    flags.require('express-shipping');
+    // ...
 });
 ```
 
@@ -49,25 +49,27 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 ## Phases
 
-| Phase | Doc | Outcome |
-|---|---|---|
-| 0 | [Foundations and decisions](roadmap-phases/phase-0-foundations.md) | Repo, tooling, decision records, generator spike |
-| 1 | [Demo target](roadmap-phases/phase-1-demo-target.md) | Consume the Storefront specs (`v0` and `v1` of three services), stage manifest, API keys and the flag source |
-| 2 | [Generation pipeline](roadmap-phases/phase-2-generation-pipeline.md) | One command turns specs into typed clients |
-| 3 | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md) | `apitest.service.version.group.operation()` plus environments, auth, flags, safety |
-| 4 | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md) | Fixtures, cleanup, flags, example suites against a stub service |
-| 5 | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to published version, automated |
-| 6 | [Polish](roadmap-phases/phase-6-polish.md) | Docs, demo, measured results |
+| Phase | Doc                                                                                    | Outcome                                                                                                      |
+| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 0     | [Foundations and decisions](roadmap-phases/phase-0-foundations.md)                     | Repo, tooling, decision records, generator spike                                                             |
+| 1     | [Demo target](roadmap-phases/phase-1-demo-target.md)                                   | Consume the Storefront specs (`v0` and `v1` of three services), stage manifest, API keys and the flag source |
+| 2     | [Generation pipeline](roadmap-phases/phase-2-generation-pipeline.md)                   | One command turns specs into typed clients                                                                   |
+| 3     | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md)             | `apitest.service.version.group.operation()` plus environments, auth, flags, safety                           |
+| 4     | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md)             | Fixtures, cleanup, flags, example suites against a stub service                                              |
+| 5     | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to published version, automated                                                                  |
+| 6     | [Polish](roadmap-phases/phase-6-polish.md)                                             | Docs, demo, measured results                                                                                 |
 
 ## Checklist
 
 ### Phase 0: Foundations and decisions
+
 - [ ] Repo skeleton, TypeScript strict, ESM, lint and format
 - [ ] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target, call shape
 - [ ] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison), with no default generator
 - [ ] Java requirement handled if OpenAPI Generator is chosen (local, CI, and Docker fallback)
 
 ### Phase 1: Demo target
+
 - [ ] Contract agreed with the backend project: versioned specs (`<service>-service-v<N>.yaml`, a `v0` operational and a `v1` business spec per service) with stable `operationId` and `tag` values, a shared `Problem` schema, an `apiKey` security scheme, `GET /v0/version` on every service, and LaunchDarkly as the flag source
 - [ ] Specs pulled in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
@@ -76,6 +78,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Backend's planned v1.1.0 (non-breaking) changes and its `v2` specs (added beside `v1`) mapped to their effect on generated clients
 
 ### Phase 2: Generation pipeline
+
 - [ ] `@openapitools/openapi-generator-cli` as a dev dependency, version pinned in `openapitools.json`
 - [ ] One generator entry per service, output to `src/generated/<service>/`
 - [ ] `generate` script with validate, clean, generate, format steps
@@ -85,6 +88,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Custom Mustache template overrides only if the Phase 2 decision rule justifies them (default is none)
 
 ### Phase 3: Client facade and configuration
+
 - [ ] Document the call shape: one request object in, `{ status, headers, data }` out, no throw on HTTP error statuses
 - [ ] Typed facade over generated API classes, no hand edits per endpoint
 - [ ] Version segment in the facade (`apitest.ordersService.v1.orders.getOrder`, with `v0` for the operational routes) and a per-version spec version check
@@ -98,6 +102,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Unit tests for all of the above
 
 ### Phase 4: Test authoring with vitest
+
 - [ ] Vitest config: global setup, reporters, and the `smoke` and `full` project recipe for consuming projects
 - [ ] Fixtures: client, unique ids, cleanup registry
 - [ ] Test data builders typed from generated models
@@ -107,6 +112,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Proof that a removed or changed operation, a `v1` to `v2` migration, or a retired version fails at typecheck
 
 ### Phase 5: Spec-change workflow, CI, release
+
 - [ ] `sync-specs` script and documented update steps
 - [ ] Breaking-change detection on spec changes, including an added or removed API version of a service
 - [ ] CI: lint, typecheck, unit, generate-check and the example suites. The scheduled smoke run against `prod` belongs to the backend project, with a recipe in `docs/backend-setup.md`
@@ -116,6 +122,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Scripted demo: v1.0.0, v1.1.0 (non-breaking), `v2` added beside `v1` (non-breaking for the library), then `v1` retired (breaking)
 
 ### Phase 6: Polish
+
 - [ ] README with pipeline diagram and quick start
 - [ ] Short demo recording or annotated transcript
 - [ ] Measured claims (time to add an endpoint, hand-written vs generated lines)

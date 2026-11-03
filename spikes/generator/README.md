@@ -19,9 +19,9 @@ The OpenAPI Generator candidates (`ogen-fetch`, `ogen-axios`) need Java 11 or ne
 
 ## Layout
 
-| Path | What it is |
-|---|---|
-| `run.ts` | Generates, measures and prints the results for every candidate |
-| `probes/` | The mock server, the shared scenario, one adapter per candidate, and the facade type check |
-| `openapitools.json` | Pins the OpenAPI Generator version |
-| `openapi-ts.config.mjs`, `orval.config.mjs` | Candidate configuration |
+| Path                                        | What it is                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `run.ts`                                    | Generates, measures and prints the results for every candidate                             |
+| `probes/`                                   | The mock server, the shared scenario, one adapter per candidate, and the facade type check |
+| `openapitools.json`                         | Pins the OpenAPI Generator version                                                         |
+| `openapi-ts.config.mjs`, `orval.config.mjs` | Candidate configuration                                                                    |

@@ -13,14 +13,14 @@ This phase was drafted for OpenAPI Generator. The Phase 0 spike chose hey-api `o
 
 ## Deliverables
 
-| Deliverable | Location |
-|---|---|
-| Generator config | `openapitools.json` |
-| Generation script | `scripts/generate.ts` |
-| Drift check script | `scripts/check-generated.ts` |
-| Generated clients | `src/generated/<service>-service-v<N>/` |
-| Pipeline unit tests | `tests/unit/pipeline/` |
-| Pipeline doc with a diagram | `docs/generation-pipeline.md` |
+| Deliverable                                      | Location                                           |
+| ------------------------------------------------ | -------------------------------------------------- |
+| Generator config                                 | `openapitools.json`                                |
+| Generation script                                | `scripts/generate.ts`                              |
+| Drift check script                               | `scripts/check-generated.ts`                       |
+| Generated clients                                | `src/generated/<service>-service-v<N>/`            |
+| Pipeline unit tests                              | `tests/unit/pipeline/`                             |
+| Pipeline doc with a diagram                      | `docs/generation-pipeline.md`                      |
 | Template overrides (optional, only if justified) | `templates/<generator>/` and `templates/README.md` |
 
 ## How it works
@@ -84,12 +84,12 @@ Support `npm run generate -- --service orders-service-v1` for a single spec.
 - [ ] Check that the specs do not collide on model or class names. All of them share an error schema (`Problem`), every service has an `operations` tag (so an `OperationsApi` class), and the three `v0` specs have the same operationIds, so expect collisions if specs share a folder. The proposal is to generate each spec into its own folder, `src/generated/<service>-service-v<N>/`, which the facade already assumes. Confirm it, or choose a model and API name prefix or a package option instead, and record it in decision record 0011. Do this early, because it changes every generated import.
 
 - [ ] **API versions (decision record 0013).** Every Storefront service is versioned: the version is part of the path (`/v1/...`, `/v2/...` beside it later), of the spec file name, and of the keys in the `specVersions` object that `GET /v0/version` returns. Record the rules in decision record 0013:
-  - A spec file named `<service>-service-v<N>.yaml` is version `v<N>` of that service, generated into its own folder, so models and errors never collide between versions.
-  - `v0` is the reserved operational spec of each service (health, version and, on customers, readiness). It is an ordinary version segment for the library, with nothing special-cased.
-  - A spec file with no suffix is a service without versions and gets no version segment. The Storefront does not use that form, but fixtures do.
-  - The version comes from the file suffix, never from the major of `info.version`, because the 0.x business drafts use `/v1`.
-  - An API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. Adding a version spec is a minor change for the package, and removing one is a major change (Phase 5).
-  - Prove the rules with fixture specs under `tests/fixtures/specs/` (a small `widgets` service with `v0`, `v1` and `v2`) before the Storefront has a `v2`. Phase 3 adds the version segment to the facade.
+    - A spec file named `<service>-service-v<N>.yaml` is version `v<N>` of that service, generated into its own folder, so models and errors never collide between versions.
+    - `v0` is the reserved operational spec of each service (health, version and, on customers, readiness). It is an ordinary version segment for the library, with nothing special-cased.
+    - A spec file with no suffix is a service without versions and gets no version segment. The Storefront does not use that form, but fixtures do.
+    - The version comes from the file suffix, never from the major of `info.version`, because the 0.x business drafts use `/v1`.
+    - An API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. Adding a version spec is a minor change for the package, and removing one is a major change (Phase 5).
+    - Prove the rules with fixture specs under `tests/fixtures/specs/` (a small `widgets` service with `v0`, `v1` and `v2`) before the Storefront has a `v2`. Phase 3 adds the version segment to the facade.
 
 ### 6. Pipeline tests
 
