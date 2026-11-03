@@ -18,7 +18,7 @@ This phase was drafted for OpenAPI Generator. The Phase 0 spike chose hey-api `o
 | Generator config | `openapitools.json` |
 | Generation script | `scripts/generate.ts` |
 | Drift check script | `scripts/check-generated.ts` |
-| Generated clients | `src/generated/<service>/` |
+| Generated clients | `src/generated/<service>-service-v<N>/` |
 | Pipeline unit tests | `tests/unit/pipeline/` |
 | Pipeline doc with a diagram | `docs/generation-pipeline.md` |
 | Template overrides (optional, only if justified) | `templates/<generator>/` and `templates/README.md` |
@@ -67,7 +67,7 @@ The npm wrapper `@openapitools/openapi-generator-cli` downloads the jar and runs
 - [ ] **Typecheck** the generated code so a broken generation fails here, not later in someone's test.
 - [ ] Print a short summary: services generated, operations per service, generator version.
 
-Support `npm run generate -- --service orders-service` for a single service.
+Support `npm run generate -- --service orders-service-v1` for a single spec.
 
 ### 4. The drift check
 
@@ -80,16 +80,22 @@ Support `npm run generate -- --service orders-service` for a single service.
 
 ### 5. Multi-service support
 
-- [ ] Generate all three Storefront specs (customers, orders, shipping) and confirm that adding a service requires only dropping its spec into `specs/` and rerunning `generate`. Name spec files `<service>-service.yaml` (for example `orders-service.yaml`), which becomes the facade name (`ordersService`).
-- [ ] Check that the three services do not collide on model or class names. All three specs share an error schema and a `version` tag (so a `VersionApi` class), so expect collisions. Decide on per-service naming (a model and API name prefix, or a package option) and record it in decision record 0011. Do this early, because it changes every generated import.
+- [ ] Generate all the Storefront specs (a `v0` and a `v1` for customers, orders and shipping) and confirm that adding a service or a version requires only dropping its spec into `specs/` and rerunning `generate`. Name spec files `<service>-service-v<N>.yaml` (for example `orders-service-v1.yaml`). The file name gives the facade name (`ordersService`) and the version segment (`v1`).
+- [ ] Check that the specs do not collide on model or class names. All of them share an error schema (`Problem`), every service has an `operations` tag (so an `OperationsApi` class), and the three `v0` specs have the same operationIds, so expect collisions if specs share a folder. The proposal is to generate each spec into its own folder, `src/generated/<service>-service-v<N>/`, which the facade already assumes. Confirm it, or choose a model and API name prefix or a package option instead, and record it in decision record 0011. Do this early, because it changes every generated import.
 
-- [ ] **Several API versions of one service.** Some services serve two API versions at once (`/v1/...` and `/v2/...`), and a test suite has to exercise both while clients migrate. The Storefront does not do this, so prove it with two small fixture specs under `tests/fixtures/specs/` (for example `widgets-service-v1.yaml` and `widgets-service-v2.yaml`) and a local mock. Decide the rule and record it in decision record 0013. The proposal: a spec file named `<service>-service-v<N>.yaml` is version `v<N>` of that service, each version is generated into its own folder so models and errors never collide between versions, and a service is either unversioned or versioned, never both. An API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. Phase 3 adds the version segment to the facade.
+- [ ] **API versions (decision record 0013).** Every Storefront service is versioned: the version is part of the path (`/v1/...`, `/v2/...` beside it later), of the spec file name, and of the keys in the `specVersions` object that `GET /v0/version` returns. Record the rules in decision record 0013:
+  - A spec file named `<service>-service-v<N>.yaml` is version `v<N>` of that service, generated into its own folder, so models and errors never collide between versions.
+  - `v0` is the reserved operational spec of each service (health, version and, on customers, readiness). It is an ordinary version segment for the library, with nothing special-cased.
+  - A spec file with no suffix is a service without versions and gets no version segment. The Storefront does not use that form, but fixtures do.
+  - The version comes from the file suffix, never from the major of `info.version`, because the 0.x business drafts use `/v1`.
+  - An API version is not the spec's `info.version` and not the package version (decision record 0012): those change over time, while API versions coexist. Adding a version spec is a minor change for the package, and removing one is a major change (Phase 5).
+  - Prove the rules with fixture specs under `tests/fixtures/specs/` (a small `widgets` service with `v0`, `v1` and `v2`) before the Storefront has a `v2`. Phase 3 adds the version segment to the facade.
 
 ### 6. Pipeline tests
 
 - [ ] **Determinism:** run generation twice, assert identical output.
 - [ ] **Compiles:** the generated code passes `tsc` under the repo's strict settings.
-- [ ] **Surface check:** for each Storefront spec, assert that the expected operations exist (for example `getVersion` on all three, plus `createCustomer`, `createOrder`, `getShipment`) by importing the generated module.
+- [ ] **Surface check:** for each Storefront spec, assert that the expected operations exist (for example `getVersion` on the three `v0` specs, plus `createCustomer`, `createOrder` and `getShipment` on the `v1` specs) by importing the generated module.
 - [ ] **Removal:** remove an operation from a copy of the spec and assert it disappears from the output.
 - [ ] **Invalid spec:** a malformed spec fails with a useful error and does not touch existing output.
 - [ ] **API versions:** generate the two versioned fixture specs side by side, assert that each version lands in its own folder with no name collisions, that an operation present only in `v2` is absent from `v1`, and that `generate:check` covers both.
@@ -123,7 +129,7 @@ If you do need an override:
 
 ## Acceptance criteria
 
-- `npm run generate` produces typed clients for all three Storefront specs, with no manual steps and no name collisions.
+- `npm run generate` produces typed clients for every Storefront spec (a `v0` and a `v1` for each of the three services), with no manual steps and no name collisions.
 - Two fixture specs for one service (`-v1` and `-v2`) generate side by side with no name collisions.
 - `npm run generate:check` passes on a clean tree and fails after editing a generated file.
 - Pipeline tests pass in CI.

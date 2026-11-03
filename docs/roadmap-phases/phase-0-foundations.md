@@ -36,13 +36,19 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 ├── scripts/                   # generate, check, sync-specs, release helpers
 ├── tests/
 │   ├── unit/                  # tests of the library itself
-│   └── integration/           # example integration tests against the Storefront services
+│   ├── examples/              # example suites that show each library feature, run against the stub service (Phase 4)
+│   ├── stub/                  # a small in-process service with versioned fixture specs, for the example suites
+│   └── fixtures/specs/        # fixture specs used by the pipeline tests and the stub
+├── mock/                      # spec-driven mocks of the Storefront specs (Phase 1)
 ├── examples/consumer/         # a project that installs the built package (Phase 5)
+├── spikes/                    # throwaway comparisons behind decision records (the generator spike)
 ├── docs/
 └── .github/workflows/
 ```
 
-The demo backend is the Storefront backend project (see the backend roadmap), and it lives in its own repo. Its contract with this library is the three OpenAPI files, the stage manifest, and the API keys, which Phase 1 describes.
+The demo backend is the Storefront backend project (see the backend roadmap), and it lives in its own repo. Its contract with this library is its versioned OpenAPI files, the stage manifest, the API keys and the feature flag source, which Phase 1 describes.
+
+**What lives where.** This repository holds the library and tests of the library itself: unit tests, pipeline tests, and example suites that run against a small in-process stub service, with no cloud and no secrets. The tests of the Storefront services live in the backend project, like the tests of any real service, and consume the published package. The example consumer (Phase 5) is the template for that setup. The library never runs write tests against a Storefront stage.
 
 ## Tasks
 
@@ -71,10 +77,10 @@ Each record: context, options considered, decision, consequences. Keep them to a
 | 0008 | Custom generator templates | None by default. Allowed only with a recorded reason, after generator options, the facade, transport hooks, and spec fixes were tried (decision rule in Phase 2) | Phase 0 |
 | 0009 | Token source for the stretch goal | Mock OAuth2 server for tests (default). Which real identity provider to use, if any, is a backend decision, made after checking current cost (see Phase 3) | Only if the stretch goal is pursued |
 | 0010 | Call shape | One request object per call (no positional parameters), a `{ status, headers, data }` response, and no throw on HTTP error statuses. Positional parameters were hard to read, and a new parameter early in a signature broke many tests. A 404 or 409 is an expected outcome in a negative test, not an exception (Phase 3) | Phase 0 |
-| 0011 | Naming across services | Decided in Phase 2: the three specs share an error schema name and a `version` tag, which collide in generated code | Phase 2 |
+| 0011 | Naming across services | Decided in Phase 2: the three services share an error schema name (`Problem`) and an `operations` tag, which collide in generated code unless each spec is generated into its own folder | Phase 2 |
 | 0012 | Package version vs spec versions | Decided in Phase 5: independent semver, with spec versions listed in the changelog | Phase 5 |
-| 0013 | Several API versions of one service | Decided in Phase 2, built into the facade in Phase 3: a spec named `<service>-service-v<N>.yaml` is version `v<N>`, generated into its own folder, and the facade adds a version segment (`apitest.widgetsService.v2.widgets.listWidgets`). Different from a spec's `info.version` and from the package version | Phase 2 |
-| 0014 | Feature flags in tests | Decided in Phase 3: a pluggable flag provider with a static per-environment map as the default, flags resolved once per run, and helpers that skip a test with a stated reason. Skips are reported. Where flag values come from is a backend decision | Phase 3 |
+| 0013 | API versions of one service | Decided in Phase 2, built into the facade in Phase 3: every Storefront spec is `<service>-service-v<N>.yaml`, generated into its own folder, and the facade adds a version segment (`apitest.ordersService.v1.orders.getOrder`). `v0` is the reserved operational spec. Different from a spec's `info.version` and from the package version. The version check compares each `specVersions` entry with the spec whose suffix matches the key | Phase 2 |
+| 0014 | Feature flags in tests | Decided in Phase 3: a pluggable, read-only flag provider (a static per-environment map as the default, and a LaunchDarkly REST provider for the Storefront), flags resolved once per run, and helpers that skip a test with a stated reason. Skips are reported. Tests never write flags | Phase 3 |
 
 ### 3. Generator spike
 

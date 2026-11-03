@@ -27,10 +27,10 @@ Make the project easy to understand and easy to try. A reader should get the ide
 - [ ] A one-paragraph summary: what the library is and the problem it solves (hand-written clients for many services drift and cost time).
 - [ ] The target experience snippet from the roadmap, right at the top.
 - [ ] A diagram of the pipeline: specs, validate, generate, facade, tests, publish.
-- [ ] Quick start: prerequisites (Node, Java or Docker), install, generate, run the smoke tests against the mock or `prod`.
+- [ ] Quick start: prerequisites (Node, Java or Docker), install, generate, run the example suites against the stub service and the Storefront-shaped examples against the mocks.
 - [ ] "Add a service" and "Update a spec" in a few lines each, linking to the runbook.
 - [ ] Configuration reference: environments, auth (API keys, and bearer tokens if the stretch goal is built), protected environments, logging.
-- [ ] Testing section: unit, integration, smoke versus full.
+- [ ] Testing section: unit tests, the example suites, and how a consuming project sets up `smoke` versus `full`.
 - [ ] Design notes: why generated clients, why a facade, why commit generated code, why a protected-environment guard, and why there are no custom generator templates (or which overrides exist and why). Also how several API versions of one service and feature flags are handled, with a short example of each from the fixtures.
 - [ ] Badges for CI and package version.
 
@@ -38,10 +38,10 @@ Make the project easy to understand and easy to try. A reader should get the ide
 
 Pick one format and do it well.
 
-- **Short screen recording or GIF**, under two minutes: edit the spec, run generate, show the new method appear in the editor, write a test, run it against the mock or a deployed `dev` stage.
+- **Short screen recording or GIF**, under two minutes: edit the spec, run generate, show the new method appear in the editor, write a test, run it against the stub service or the mocks.
 - **Annotated transcript** of the same sequence with callouts.
 
-Include the breaking-change moment, where `tsc` points at the tests that no longer match the spec. It shows the value faster than any description.
+Include the moment where `tsc` points at the tests that no longer match the spec: an example migrated from `v1` to `v2`, and retiring `v1`. It shows the value faster than any description.
 
 - [ ] Script it so it is repeatable.
 - [ ] Use only the Storefront demo and invented data. Never show an API key in the recording or the README.
@@ -76,7 +76,7 @@ An honest limitations page builds credibility.
 
 ## Acceptance criteria
 
-- A stranger can read the README, watch the demo, and run the smoke tests in under ten minutes.
+- A stranger can read the README, watch the demo, and run the example suites in under ten minutes.
 - Every claim in the README maps to something in the repo: a test, a measurement, or a script.
 - The repo contains no secrets and nothing unrelated to this project or the Storefront demo.
 
