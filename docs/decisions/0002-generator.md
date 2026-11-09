@@ -116,7 +116,7 @@ All five candidates read the spec without warnings (OpenAPI Generator's `validat
 
 ## Findings from the Storefront drafts (ALP-12)
 
-The six Storefront drafts (customers and orders at 0.1.0, shipping at 0.1.1) were generated with the options above, each spec into its own folder. The full review is in [the backend contract](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12). What it means for this record:
+The six Storefront drafts (customers `v0` and orders at 0.1.0, shipping at 0.1.1, customers `v1` at 0.2.0) were generated with the options above, each spec into its own folder. The full review is in [the backend contract](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12). What it means for this record:
 
 - **The chosen options hold.** All six generate without warnings and typecheck with `lib: ["ES2023", "DOM"]`. Without `DOM` each folder has 55 errors, so `"DOM"` still goes into `tsconfig.json` with the first committed client. The body field is named after the schema (`createCustomer`, `createOrder`), the `Idempotency-Key` header is a required field, and the errors are typed per status.
 - **Two options to decide in Phase 2, not applied here.** They change the generated types and the run-time values, so each is a decision and not a default:

@@ -215,7 +215,7 @@ These come from the spec review in ALP-12 (see the review section of [backend-co
 - [ ] **A flag-off 404 looks like an unknown id.** `advanceShipment` answers 404 with the same `Problem` and problem `type` whether the simulation flag is off or the shipment does not exist, and the API does not report the flag. A flag-aware test reads the flag state first and uses a shipment that exists, as in the example above.
 - [ ] **Caller types are in prose.** The specs say in text that `advanceShipment` and a `listOrders` call without `customerId` need the `admin` key. No machine-readable field says which key a route takes, so the test or the config chooses the caller type (`api.as('admin')`).
 - [ ] **`specVersions` is a string map.** Its keys are not typed, so the version check compares them with the spec file suffixes at run time (ALP-13).
-- [ ] **Customers `v1` documents no 503** (BEP-31). Until the spec says otherwise, a 503 on a customers business route is an undocumented response, and the facade passes it through like any other status.
+- [ ] **Every customers route can answer 503.** Since customers `v1` 0.2.0 (BEP-31) each business route documents the shared 503 with `Retry-After`, so the error type of a customers call includes it. The facade passes it through like any other status, and only warm-up and the opt-in retries act on it.
 
 ### Protected-environment guard
 
