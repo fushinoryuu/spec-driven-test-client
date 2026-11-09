@@ -26,14 +26,15 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── openapitools.json          # Phase 2
-├── specs/                     # input OpenAPI documents, one per service
+├── specs.config.json          # which sibling repositories and spec files `copy-specs` copies (Phase 1)
+├── specs/                     # input OpenAPI documents, one per service and API version
 ├── templates/                 # optional generator template overrides (default is none, see Phase 2)
 ├── src/
 │   ├── generated/             # generator output, never edited by hand
 │   ├── client/                # facade, config, auth, safety (Phase 3)
 │   ├── testing/               # vitest helpers and fixtures (Phase 4)
 │   └── index.ts
-├── scripts/                   # generate, check, sync-specs, release helpers
+├── scripts/                   # generate, check, copy-specs, release helpers
 ├── tests/
 │   ├── unit/                  # tests of the library itself
 │   ├── examples/              # example suites that show each library feature, run against the stub service (Phase 4)
@@ -73,7 +74,7 @@ Each record: context, options considered, decision, consequences. Keep them to a
 | 0004 | Facade strategy                   | Runtime facade with mapped types over the generated API classes (Phase 3)                                                                                                                                                                                                                                                                                                                                                                    | Phase 0                             |
 | 0005 | Auth model                        | Pluggable provider function, with a static API key in `x-api-key` as the default (what the Storefront backend uses). Stretch: automatic bearer token acquisition and refresh (Phase 3)                                                                                                                                                                                                                                                       | Phase 0                             |
 | 0006 | Publish target                    | npm or GitHub Packages                                                                                                                                                                                                                                                                                                                                                                                                                       | Phase 0, confirmed in Phase 5       |
-| 0007 | Spec source                       | Sync the published specs and stage manifest from the Storefront backend with a script                                                                                                                                                                                                                                                                                                                                                        | Phase 0                             |
+| 0007 | Spec source                       | Copy the specs from a local checkout of each service repository with `npm run copy-specs`                                                                                                                                                                                                                                                                                                                                                    | Phase 0                             |
 | 0008 | Custom generator templates        | None by default. Allowed only with a recorded reason, after generator options, the facade, transport hooks, and spec fixes were tried (decision rule in Phase 2)                                                                                                                                                                                                                                                                             | Phase 0                             |
 | 0009 | Token source for the stretch goal | Mock OAuth2 server for tests (default). Which real identity provider to use, if any, is a backend decision, made after checking current cost (see Phase 3)                                                                                                                                                                                                                                                                                   | Only if the stretch goal is pursued |
 | 0010 | Call shape                        | One request object per call (no positional parameters), a `{ status, headers, data }` response, and no throw on HTTP error statuses. Positional parameters were hard to read, and a new parameter early in a signature broke many tests. A 404 or 409 is an expected outcome in a negative test, not an exception (Phase 3)                                                                                                                  | Phase 0                             |

@@ -13,7 +13,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 | Deliverable                                                                      | Location                                          |
 | -------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Spec sync script                                                                 | `scripts/sync-specs.ts`                           |
+| Stage manifest copy (an extension of the Phase 1 spec copy script)               | `scripts/copy-specs.ts`                           |
 | Spec diff and version-bump script                                                | `scripts/spec-diff.ts`, `scripts/next-version.ts` |
 | CI workflows                                                                     | `.github/workflows/ci.yml`, `release.yml`         |
 | Changelog generation                                                             | `scripts/changelog.ts`, `CHANGELOG.md`            |
@@ -26,7 +26,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 ## The workflow
 
 1. A service's spec changes in the Storefront backend project, where each service's versioned OpenAPI file is the contract and `info.version` is bumped. A new API version is a new spec file. The backend deploys the change to `dev` first.
-2. `npm run sync-specs` pulls the published specs and the stage manifest from the backend project into `specs/`.
+2. `npm run copy-specs` copies the specs and the stage manifest from the backend checkout (on `main`, beside this repository) into `specs/`.
 3. `npm run generate` regenerates the client.
 4. The spec diff is computed, and the next version is proposed.
 5. `npm run typecheck` shows which existing tests break (compile-time).
@@ -37,12 +37,11 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ## Tasks
 
-### 1. Spec sync
+### 1. Spec copy
 
-- [ ] `sync-specs` pulls specs from their source into `specs/`. For Storefront, the backend publishes its versioned specs (a `v0` and a `v1` for each of the three services) and a stage manifest as a build artifact or release asset and records the source commit. Copy them in, or fetch them at a given ref, naming each file `<service>-service-v<N>.yaml` (decision record 0013). Until the backend publishes those artifacts (its Phase 5), fetch the bundled files from a git ref of the backend repo's `specs/` folder. Record the source, ref, and spec version for each in `specs/sources.json` so the origin of every spec is traceable. Pull all of them together, so a change that spans services is one library change.
-- [ ] Fail clearly if a source is unreachable. Never leave a half-updated `specs/` folder.
-- [ ] The same script pulls the stage manifest (service names, base URLs per stage, secret names, deployed spec versions), so the library's environment config does not duplicate it.
-- [ ] Document how a team with many services would point the same script at many repos or an internal spec registry.
+- [ ] `copy-specs` (built in Phase 1, decision record 0007) already copies the versioned specs (a `v0` and a `v1` for each of the three services, named `<service>-service-v<N>.yaml`, decision record 0013) from the local sibling checkouts into `specs/`, all together, so a change that spans services is one library change. Check that it still covers the files the backend publishes once its `v2` specs exist, and keep its failure behavior: a failed run never leaves a half-updated `specs/` folder.
+- [ ] Extend the same script to copy the stage manifest (service names, base URLs per stage, secret names, deployed spec versions) from the backend checkout, so the library's environment config does not duplicate it.
+- [ ] Document how a team with many services lists each repository in `specs.config.json` and clones them beside the library. Remote sources (a git ref, a release asset or a spec registry) are not supported (decision record 0007).
 
 ### 2. Spec diff and breaking-change detection
 
@@ -84,20 +83,20 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ### 7. Rehearse the demo
 
-Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. The library side (sync, generate, typecheck, publish) needs the specs and the mocks only. Running the Storefront suites against a deployed `dev` stack happens in the backend project, so that part comes after the backend has finished its services:
+Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. The library side (copy specs, generate, typecheck, publish) needs the specs and the mocks only. Running the Storefront suites against a deployed `dev` stack happens in the backend project, so that part comes after the backend has finished its services:
 
 - [ ] **v1.0.0:** the library is built from the v0 and v1 specs of the three Storefront services (v1.0.0 business specs) and published. The example consumer's tests pass against the mocks, and the backend's Storefront suites pass against `dev` using this package.
-- [ ] **v1.1.0 (non-breaking):** apply the backend's planned v1.1.0 changes to the `v1` specs (customers: optional `preferredLanguage`; orders: `GET /v1/orders/{orderId}/timeline` and an optional `notes` field on order creation; shipping: an optional `carrier` filter on the shipment list). Once the backend has deployed them to `dev`, run sync and generate, and see `getOrderTimeline` appear in autocomplete on `ordersService.v1.orders`. Add one test, publish 1.1.0. Time the whole thing.
-- [ ] **`v2` beside `v1` (non-breaking for the library):** the backend adds `orders-service-v2.yaml` (`createOrder` requires `shippingAddressId`) and `shipping-service-v2.yaml` (status value `PICKED` renamed `PACKED`) next to the `v1` files. Run sync and generate and see the new `v2` namespace appear while every `v1` call keeps compiling. The diff tool classifies the added versions as a minor change. Migrate one example from `v1` to `v2`, watch `tsc` flag the missing `shippingAddressId` and the old status value, fix it, and publish the minor version.
+- [ ] **v1.1.0 (non-breaking):** apply the backend's planned v1.1.0 changes to the `v1` specs (customers: optional `preferredLanguage`; orders: `GET /v1/orders/{orderId}/timeline` and an optional `notes` field on order creation; shipping: an optional `carrier` filter on the shipment list). Once the backend has deployed them to `dev`, run copy-specs and generate, and see `getOrderTimeline` appear in autocomplete on `ordersService.v1.orders`. Add one test, publish 1.1.0. Time the whole thing.
+- [ ] **`v2` beside `v1` (non-breaking for the library):** the backend adds `orders-service-v2.yaml` (`createOrder` requires `shippingAddressId`) and `shipping-service-v2.yaml` (status value `PICKED` renamed `PACKED`) next to the `v1` files. Run copy-specs and generate and see the new `v2` namespace appear while every `v1` call keeps compiling. The diff tool classifies the added versions as a minor change. Migrate one example from `v1` to `v2`, watch `tsc` flag the missing `shippingAddressId` and the old status value, fix it, and publish the minor version.
 - [ ] **Retire `v1` (breaking):** remove the `v1` specs, as the backend would when it retires `/v1`. Run generate and watch `tsc` flag every example that uses `v1`. The diff tool demands a major bump. Fix the examples, publish 2.0.0.
-- [ ] Keep the order explicit: the backend deploys a change to `dev` first, then the library syncs specs. The version check in global setup (Phase 4) flags a mismatch if the order is wrong.
+- [ ] Keep the order explicit: the backend deploys a change to `dev` first, then the library copies the specs. The version check in global setup (Phase 4) flags a mismatch if the order is wrong.
 - [ ] Record timings and the hand-written line count for each step. These become the measured claims in Phase 6.
 
 ### 8. Generator and template upgrades
 
 Spec changes are not the only reason generated code changes. Bumping the pinned generator version, changing generator options, or editing a template override (Phase 2) all change the output with no spec change, so they get their own workflow.
 
-- [ ] Use a separate pull request for generator and template changes, never mixed with a spec sync.
+- [ ] Use a separate pull request for generator and template changes, never mixed with a spec copy.
 - [ ] Bump the pinned version in `openapitools.json`. If template overrides exist, follow the Phase 2 upgrade procedure: export the default templates for the old and new versions, diff them, and merge the relevant changes into each override.
 - [ ] Regenerate, then review the generated diff, run typecheck, the unit tests and the example suites, and the compile-time safety test from Phase 4.
 - [ ] CI treats changes under `openapitools.json` and `templates/` as triggers for the drift check and the full test run, and labels the pull request as a tooling change.
