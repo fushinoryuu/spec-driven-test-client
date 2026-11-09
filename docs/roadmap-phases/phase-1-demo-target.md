@@ -37,7 +37,7 @@ Every Storefront service publishes its API in versions. The version is part of t
 | Cold-database readiness             | Customers `getReadiness` (`GET /v0/health/ready`). It needs an API key, touches the database, and returns 503 with a `Retry-After` header (seconds) while the database resumes. Used by warm-up only                                                                                                                                                                                                                                                                                                                                                                 | Backend customers service                                                                                                                                                                        |
 | Feature flags                       | LaunchDarkly, with two environments (`dev` and `prod`). **No backend endpoint exposes flag state**, so the library reads it from LaunchDarkly with a read-only REST API token (the Reader role should be enough). Flags are plain booleans with no targeting rules, so a flag's state is its environment's `on` value. The hand-off doc lists the project, environment keys and flag keys, not their state. Flag-gated behavior is documented in the spec as a response (for example `advanceShipment` returns 404 with a `Problem` when the simulation flag is off) | Backend (flag keys are decided in its Phase 1)                                                                                                                                                   |
 | Planned spec changes                | Change notes for v1.1.0 and for the `v2` specs, per service                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Backend Phase 5 (integration and contracts), possibly earlier                                                                                                                                    |
-| Reporting problems                  | Spec problems are raised as GitHub issues in the backend repository, and the backend announces a changed draft with its new `info.version`                                                                                                                                                                                                                                                                                                                                                                                                                           | Backend                                                                                                                                                                                          |
+| Reporting problems                  | Spec problems are raised as bug tickets in the backend project (BEP), and the backend announces a changed draft with its new `info.version`                                                                                                                                                                                                                                                                                                                                                                                                                          | Backend                                                                                                                                                                                          |
 
 Check each row against the backend's `spec-handoff.md`. Record gaps in `docs/backend-contract.md` and raise them in the backend project instead of working around them in the library.
 
@@ -72,14 +72,16 @@ The `operations` group holds the health and version routes and, on customers, th
 
 Check each of these in the generated output, and note anything the generator handles badly:
 
-- [ ] Enums: order status, shipment status, customer status.
-- [ ] Nullable and optional fields, `date-time` values, arrays, and nested objects (order line items).
-- [ ] Cursor pagination parameters.
-- [ ] A required header parameter (`Idempotency-Key` on `createOrder`) and how it appears in the generated request type.
-- [ ] The shared `Problem` schema on 4xx and 503 responses, and the `Retry-After` header on the 503.
-- [ ] The `apiKey` security scheme, and how the generated runtime lets you supply the key.
-- [ ] The `operations` tag and the `Problem` schema appearing in every service, and the same operationIds (`getHealth`, `getVersion`) in the three `v0` specs. These collide unless each spec is generated into its own folder (Phase 2).
-- [ ] Flag-gated responses documented in the spec (such as the 404 `Problem` on `advanceShipment`), and the `specVersions` object on the version response.
+- [x] Enums: order status, shipment status, customer status.
+- [x] Nullable and optional fields, `date-time` values, arrays, and nested objects (order line items).
+- [x] Cursor pagination parameters.
+- [x] A required header parameter (`Idempotency-Key` on `createOrder`) and how it appears in the generated request type.
+- [x] The shared `Problem` schema on 4xx and 503 responses, and the `Retry-After` header on the 503.
+- [x] The `apiKey` security scheme, and how the generated runtime lets you supply the key.
+- [x] The `operations` tag and the `Problem` schema appearing in every service, and the same operationIds (`getHealth`, `getVersion`) in the three `v0` specs. These collide unless each spec is generated into its own folder (Phase 2).
+- [x] Flag-gated responses documented in the spec (such as the 404 `Problem` on `advanceShipment`), and the `specVersions` object on the version response.
+
+The result for each item, and the category of each problem, are in the review section of [backend-contract.md](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12).
 
 ## Tasks
 
@@ -94,14 +96,14 @@ Check each of these in the generated output, and note anything the generator han
 The source is a local checkout of the backend, cloned beside this repository (decision record 0007).
 
 - [x] `npm run copy-specs` reads `specs.config.json`, checks the listed files (they exist, are valid OpenAPI 3.0.x YAML with an `info.version`, and are named `<service>-service-v<N>.yaml`), and replaces the contents of `specs/` with them. A failed run leaves `specs/` as it was. It keeps no record of where a spec came from, because the committed `specs/` folder and its git history are the record.
-- [ ] Run it from a backend checkout on `main` to copy the latest published specs (v0.1.0 drafts or later): the `v0` and `v1` file of each of the three services. Copy all of them together, so a change that spans services is one library change.
-- [ ] Validate each spec with the generator's `validate` command (or an equivalent) and fix nothing locally. If a spec is wrong, raise it as a GitHub issue in the backend repository, update the checkout and copy again.
+- [x] Run it from a backend checkout on `main` to copy the latest published specs (v0.1.0 drafts or later): the `v0` and `v1` file of each of the three services. Copy all of them together, so a change that spans services is one library change.
+- [x] Validate each spec with an equivalent of the generator's `validate` command (hey-api has none, so its own parse, `openapi-typescript` and Redocly's `minimal` ruleset stand in) and fix nothing locally. If a spec is wrong, raise it as a bug ticket in the backend project (BEP), update the checkout and copy again.
 
 ### 3. Review the specs as generator input
 
-- [ ] Using the Phase 0 spike setup, generate all of them and read the output for the items in the checklist above.
-- [ ] Sort every problem into: a spec issue (raise it in the backend project), a generator option (record it in decision record 0002), a facade concern (note it for Phase 3), or, as a last resort, a template override (only if the Phase 2 decision rule justifies it).
-- [ ] Check the assumptions these docs make about the drafts against the real drafts, and update the affected docs wherever a draft differs: the operationIds `getHealth`, `getVersion` and `getReadiness` and the `operations` tag, `listCustomers` hiding deleted customers (with `status=deleted` showing them), a `Retry-After` header in seconds on the shared 503, the `specVersions` keys matching the file suffixes, and the `/v0` and `/v1` path prefixes.
+- [x] Using the Phase 0 spike setup, generate all of them and read the output for the items in the checklist above.
+- [x] Sort every problem into: a spec issue (raise it in the backend project), a generator option (record it in decision record 0002), a facade concern (note it for Phase 3), or, as a last resort, a template override (only if the Phase 2 decision rule justifies it).
+- [x] Check the assumptions these docs make about the drafts against the real drafts, and update the affected docs wherever a draft differs: the operationIds `getHealth`, `getVersion` and `getReadiness` and the `operations` tag, `listCustomers` hiding deleted customers (with `status=deleted` showing them), a `Retry-After` header in seconds on the shared 503, the `specVersions` keys matching the file suffixes, and the `/v0` and `/v1` path prefixes.
 
 ### 4. Stage readiness check
 
@@ -148,7 +150,7 @@ The backend plans two kinds of spec change for the demo and writes its change no
 ## Acceptance criteria
 
 - The `v0` and `v1` specs of the three services (v0.1.0 drafts or later) are in `specs/`, copied with `npm run copy-specs` from a backend checkout on `main`, and each passes validation.
-- `docs/backend-contract.md` exists, with every gap either closed or raised in the backend project as a GitHub issue.
+- `docs/backend-contract.md` exists, with every gap either closed or raised in the backend project as a bug ticket.
 - The stage readiness check passes its unit tests (all services healthy, unreachable service, version mismatch per version, stage mismatch, warm-up cases). Run by hand against `prod`, and against `dev` while a dev stack is deployed, it passes, and with `--warmup` it reports the Aurora warm-up time.
 - The effect table has been verified by regenerating with the planned changes.
 
