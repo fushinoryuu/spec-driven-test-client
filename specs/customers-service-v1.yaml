@@ -3,7 +3,7 @@
 openapi: 3.0.3
 info:
   title: Customers service
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: GPL-3.0-only
     url: https://www.gnu.org/licenses/gpl-3.0.html
@@ -11,6 +11,11 @@ info:
     Customer profiles and their addresses. Emails are unique, a customer is
     never removed (deleting one only marks it `deleted`), and a customer can
     have any number of addresses.
+
+
+    Every route reads or writes the database, which pauses when idle. The first
+    call after an idle period can answer 503 with a `Retry-After` header while
+    the database resumes. Wait that many seconds and send the request again.
 
 
     This is a draft. It can change until the service is built and matches it.
@@ -77,6 +82,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
       operationId: listCustomers
       summary: List customers
@@ -133,6 +140,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -167,6 +176,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     patch:
       operationId: updateCustomer
       summary: Update a customer
@@ -225,6 +236,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     delete:
       operationId: deleteCustomer
       summary: Delete a customer
@@ -249,6 +262,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}/addresses:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -312,6 +327,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
       operationId: listAddresses
       summary: List the addresses of a customer
@@ -361,6 +378,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}/addresses/{addressId}:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -420,6 +439,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     delete:
       operationId: deleteAddress
       summary: Delete an address
@@ -442,6 +463,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 components:
   securitySchemes:
     apiKey:
@@ -873,6 +896,27 @@ components:
             status: 429
             detail: The rate limit for this API key was reached.
             correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f14
+    ServiceUnavailable:
+      description: >-
+        The service cannot answer yet. Try again after the time in
+        `Retry-After`.
+      headers:
+        Retry-After:
+          description: The seconds to wait before trying again.
+          schema:
+            type: integer
+            minimum: 0
+          example: 30
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://storefront.example/problems/service-unavailable
+            title: Service unavailable
+            status: 503
+            detail: A service this one depends on did not answer.
+            correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f15
     Conflict:
       description: The request conflicts with the current state of the resource.
       content:
