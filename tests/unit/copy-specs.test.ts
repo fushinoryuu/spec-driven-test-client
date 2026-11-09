@@ -106,16 +106,15 @@ describe('copySpecs', () => {
         expect((await readFile(path.join(root, 'specs', ORDERS_V1))).equals(content)).toBe(true);
     });
 
-    it('removes files that are not in the config and keeps specs/.gitkeep', async () => {
+    it('removes files and folders that are not in the config', async () => {
         await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
-        await write(path.join(root, 'specs', '.gitkeep'), '');
         await write(path.join(root, 'specs', 'retired-service-v1.yaml'), spec('1.0.0'));
         await write(path.join(root, 'specs', 'notes', 'old.txt'), 'old');
         await writeConfig([service([ORDERS_V1])]);
 
         const result = await run();
 
-        expect(await readdir(path.join(root, 'specs'))).toEqual(['.gitkeep', ORDERS_V1]);
+        expect(await readdir(path.join(root, 'specs'))).toEqual([ORDERS_V1]);
         expect(result.removed.sort()).toEqual(['notes', 'retired-service-v1.yaml']);
     });
 
@@ -178,7 +177,6 @@ describe('copySpecs', () => {
     describe('when a check fails', () => {
         beforeEach(async () => {
             await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
-            await write(path.join(root, 'specs', '.gitkeep'), '');
             await write(path.join(root, 'specs', 'previous-service-v1.yaml'), spec('0.9.0'));
         });
 
@@ -259,7 +257,6 @@ describe('copySpecs', () => {
     it('puts specs/ back as it was when the swap fails part way', async () => {
         await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
         await write(path.join(parent, 'service-repo', 'specs', SHIPPING_V1), spec('1.0.0'));
-        await write(path.join(root, 'specs', '.gitkeep'), '');
         await write(path.join(root, 'specs', 'previous-service-v1.yaml'), spec('0.9.0'));
         await write(path.join(root, 'specs', ORDERS_V1), spec('0.8.0'));
         await writeConfig([service([ORDERS_V1, SHIPPING_V1])]);

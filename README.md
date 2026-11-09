@@ -58,7 +58,7 @@ projects/
 }
 ```
 
-**What the command does.** It checks every listed file first: the repository and spec folders exist, each file is valid YAML, declares OpenAPI 3.0.x, has an `info.version`, and is named `<service>-service-v<N>.yaml`, and no name is listed twice. If anything is wrong, it prints every problem and leaves `specs/` as it was. Otherwise it replaces the contents of `specs/` with the listed files, byte for byte, removes files that are no longer listed (`specs/.gitkeep` stays), and prints what was added, changed, removed and left alone.
+**What the command does.** It checks every listed file first: the repository and spec folders exist, each file is valid YAML, declares OpenAPI 3.0.x, has an `info.version`, and is named `<service>-service-v<N>.yaml`, and no name is listed twice. If anything is wrong, it prints every problem and leaves `specs/` as it was. Otherwise it replaces the contents of `specs/` with the listed files, byte for byte, removes files that are no longer listed, and prints what was added, changed, removed and left alone.
 
 **Good to know.**
 

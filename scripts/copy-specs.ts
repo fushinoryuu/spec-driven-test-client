@@ -17,7 +17,6 @@ export const CONFIG_FILE = 'specs.config.json';
 /** `<service>-service-v<N>.yaml`, for example `orders-service-v1.yaml` (decision record 0001). */
 const SPEC_FILE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*-service-v\d+\.yaml$/;
 const OPENAPI_VERSION = /^3\.0\.\d+$/;
-const KEEP_FILE = '.gitkeep';
 
 export interface ServiceSource {
     /** Folder name of the service repository, found at `../<repo>` from the library root. */
@@ -276,7 +275,7 @@ async function compare(specsDir: string, planned: PlannedFile[]): Promise<CopySp
 
     const wanted = new Set(planned.map((file) => file.name));
     for (const entry of await listEntries(specsDir)) {
-        if (entry !== KEEP_FILE && !wanted.has(entry)) {
+        if (!wanted.has(entry)) {
             result.removed.push(entry);
         }
     }
@@ -306,10 +305,8 @@ async function swapIn(root: string, specsDir: string, planned: PlannedFile[]): P
         const movedIn: string[] = [];
         try {
             for (const entry of await listEntries(specsDir)) {
-                if (entry !== KEEP_FILE) {
-                    await rename(path.join(specsDir, entry), path.join(backup, entry));
-                    movedAside.push(entry);
-                }
+                await rename(path.join(specsDir, entry), path.join(backup, entry));
+                movedAside.push(entry);
             }
             for (const { name } of planned) {
                 await rename(path.join(staged, name), path.join(specsDir, name));
