@@ -16,7 +16,7 @@ The library's input is an OpenAPI document per service. The Storefront backend w
 
 ## Decision
 
-Specs are OpenAPI 3.0.3 documents stored as YAML in `specs/`, one standalone bundled file per service and API version, named `<service>-service-v<N>.yaml` (for example `orders-service-v1.yaml`). The file name gives the facade name (`ordersService`) and the version segment (`v1`). Every Storefront service is versioned, so there is always a `-v<N>` suffix; `v0` is the reserved operational spec (health, version and readiness routes). `specs/sources.json` records where each spec came from (see [0007](0007-spec-source.md)).
+Specs are OpenAPI 3.0.3 documents stored as YAML in `specs/`, one standalone bundled file per service and API version, named `<service>-service-v<N>.yaml` (for example `orders-service-v1.yaml`). The file name gives the facade name (`ordersService`) and the version segment (`v1`). Every Storefront service is versioned, so there is always a `-v<N>` suffix; `v0` is the reserved operational spec (health, version and readiness routes). `npm run copy-specs` puts the files there from the service repositories (see [0007](0007-spec-source.md)).
 
 The library never edits a spec locally. If a spec is wrong, it is fixed in the backend project and pulled again.
 

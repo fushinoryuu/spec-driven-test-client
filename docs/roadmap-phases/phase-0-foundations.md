@@ -26,14 +26,15 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── openapitools.json          # Phase 2
-├── specs/                     # input OpenAPI documents, one per service
+├── specs.config.json          # which sibling repositories and spec files `copy-specs` copies (Phase 1)
+├── specs/                     # input OpenAPI documents, one per service and API version
 ├── templates/                 # optional generator template overrides (default is none, see Phase 2)
 ├── src/
 │   ├── generated/             # generator output, never edited by hand
 │   ├── client/                # facade, config, auth, safety (Phase 3)
 │   ├── testing/               # vitest helpers and fixtures (Phase 4)
 │   └── index.ts
-├── scripts/                   # generate, check, sync-specs, release helpers
+├── scripts/                   # generate, check, copy-specs, release helpers
 ├── tests/
 │   ├── unit/                  # tests of the library itself
 │   ├── examples/              # example suites that show each library feature, run against the stub service (Phase 4)
@@ -54,12 +55,12 @@ The demo backend is the Storefront backend project (see the backend roadmap), an
 
 ### 1. Repo skeleton
 
-- [ ] Initialize with a current Node LTS and pin it (`.nvmrc` and `engines`).
-- [ ] Pick one package manager and commit its lockfile.
-- [ ] TypeScript with `strict: true`, ESM output, and `moduleResolution` suited to modern Node.
-- [ ] Vitest installed and one trivial passing test.
-- [ ] ESLint and a formatter, with generated code excluded from linting but included in typechecking.
-- [ ] A `.gitignore` that does not ignore `src/generated/` (see decision on committed output below).
+- [x] Initialize with a current Node LTS and pin it (`.nvmrc` and `engines`).
+- [x] Pick one package manager and commit its lockfile.
+- [x] TypeScript with `strict: true`, ESM output, and `moduleResolution` suited to modern Node.
+- [x] Vitest installed and one trivial passing test.
+- [x] ESLint and a formatter, with generated code excluded from linting but included in typechecking.
+- [x] A `.gitignore` that does not ignore `src/generated/` (see decision on committed output below).
 
 ### 2. Decision records
 
@@ -73,7 +74,7 @@ Each record: context, options considered, decision, consequences. Keep them to a
 | 0004 | Facade strategy                   | Runtime facade with mapped types over the generated API classes (Phase 3)                                                                                                                                                                                                                                                                                                                                                                    | Phase 0                             |
 | 0005 | Auth model                        | Pluggable provider function, with a static API key in `x-api-key` as the default (what the Storefront backend uses). Stretch: automatic bearer token acquisition and refresh (Phase 3)                                                                                                                                                                                                                                                       | Phase 0                             |
 | 0006 | Publish target                    | npm or GitHub Packages                                                                                                                                                                                                                                                                                                                                                                                                                       | Phase 0, confirmed in Phase 5       |
-| 0007 | Spec source                       | Sync the published specs and stage manifest from the Storefront backend with a script                                                                                                                                                                                                                                                                                                                                                        | Phase 0                             |
+| 0007 | Spec source                       | Copy the specs from a local checkout of each service repository with `npm run copy-specs`                                                                                                                                                                                                                                                                                                                                                    | Phase 0                             |
 | 0008 | Custom generator templates        | None by default. Allowed only with a recorded reason, after generator options, the facade, transport hooks, and spec fixes were tried (decision rule in Phase 2)                                                                                                                                                                                                                                                                             | Phase 0                             |
 | 0009 | Token source for the stretch goal | Mock OAuth2 server for tests (default). Which real identity provider to use, if any, is a backend decision, made after checking current cost (see Phase 3)                                                                                                                                                                                                                                                                                   | Only if the stretch goal is pursued |
 | 0010 | Call shape                        | One request object per call (no positional parameters), a `{ status, headers, data }` response, and no throw on HTTP error statuses. Positional parameters were hard to read, and a new parameter early in a signature broke many tests. A 404 or 409 is an expected outcome in a negative test, not an exception (Phase 3)                                                                                                                  | Phase 0                             |
@@ -86,24 +87,24 @@ Each record: context, options considered, decision, consequences. Keep them to a
 
 Goal: choose the generator and generator options with evidence. Time-box to a day or two.
 
-- [ ] Take a small throwaway spec with a few paths, a tag per group, an enum, a nullable field, a date-time, a paginated list, and a 4xx error response. If the backend's draft specs (v0.1.0) already exist, use them instead: they include an `apiKey` security scheme, a required header parameter (`Idempotency-Key`), and an error schema shared across services.
-- [ ] Generate with OpenAPI Generator `typescript-fetch` and `typescript-axios`, using the same spec.
-- [ ] Generate with at least one TypeScript-native generator for comparison. Candidates to look at: hey-api's openapi-ts, orval, openapi-typescript. They run on Node with no Java.
-- [ ] Record for each candidate: output layout, call shape, how errors surface, how config and base URL are injected, how auth headers are injected, support for middleware or a custom fetch, handling of the spec features above, output size, regeneration determinism, and install friction.
-- [ ] Check three hard requirements for every candidate. They come from decision record 0010 and the backend's specs. A candidate that needs hand edits to generated code to meet one is out:
+- [x] Take a small throwaway spec with a few paths, a tag per group, an enum, a nullable field, a date-time, a paginated list, and a 4xx error response. If the backend's draft specs (v0.1.0) already exist, use them instead: they include an `apiKey` security scheme, a required header parameter (`Idempotency-Key`), and an error schema shared across services.
+- [x] Generate with OpenAPI Generator `typescript-fetch` and `typescript-axios`, using the same spec.
+- [x] Generate with at least one TypeScript-native generator for comparison. Candidates to look at: hey-api's openapi-ts, orval, openapi-typescript. They run on Node with no Java.
+- [x] Record for each candidate: output layout, call shape, how errors surface, how config and base URL are injected, how auth headers are injected, support for middleware or a custom fetch, handling of the spec features above, output size, regeneration determinism, and install friction.
+- [x] Check three hard requirements for every candidate. They come from decision record 0010 and the backend's specs. A candidate that needs hand edits to generated code to meet one is out:
     - A single request object per call is available, by option or by default, so there are no positional parameters.
     - The response status and headers are available without throwing on non-2xx statuses.
     - OpenAPI 3.0.3 is handled cleanly.
-- [ ] Confirm the options that matter for the leading candidates and record the chosen values. For `typescript-fetch`, the documented options include `useSingleRequestParameter` (default true), `withInterfaces`, `supportsES6`, `importFileExtension` (set `.js` or `.mjs` for ES modules), `npmName`, `npmVersion`, and `withoutRuntimeChecks`. Check whether `typescript-axios` offers the same single-request-object option, and what its equivalents are for the rest.
-- [ ] Write the decision. No generator is the default. Prefer the candidate that meets the hard requirements with the least facade code, and weigh output layout, error and auth hooks, determinism, and install friction (OpenAPI Generator needs Java, the TypeScript-native generators do not). Record the alternatives and why they lost.
+- [x] Confirm the options that matter for the leading candidates and record the chosen values. For `typescript-fetch`, the documented options include `useSingleRequestParameter` (default true), `withInterfaces`, `supportsES6`, `importFileExtension` (set `.js` or `.mjs` for ES modules), `npmName`, `npmVersion`, and `withoutRuntimeChecks`. Check whether `typescript-axios` offers the same single-request-object option, and what its equivalents are for the rest.
+- [x] Write the decision. No generator is the default. Prefer the candidate that meets the hard requirements with the least facade code, and weigh output layout, error and auth hooks, determinism, and install friction (OpenAPI Generator needs Java, the TypeScript-native generators do not). Record the alternatives and why they lost.
 
 ### 4. Java requirement
 
-This section applies only if the spike chooses OpenAPI Generator. It is a Java jar, and the npm wrapper downloads and runs it. The documented minimum is Java 11.
+This section applied only if the spike chose OpenAPI Generator, which is a Java jar. The spike chose hey-api, which needs no Java (decision record 0002), so the section does not apply and its items are dropped.
 
-- [ ] Document the three ways to run it: local Java, the Docker image, and the wrapper's `useDocker` option in `openapitools.json`.
-- [ ] Decide the default for contributors and for CI.
-- [ ] Add a prerequisites section to the README with a one-line check (`java -version`).
+- [ ] ~~Document the three ways to run it: local Java, the Docker image, and the wrapper's `useDocker` option in `openapitools.json`.~~
+- [ ] ~~Decide the default for contributors and for CI.~~
+- [ ] ~~Add a prerequisites section to the README with a one-line check (`java -version`).~~
 
 ## Acceptance criteria
 

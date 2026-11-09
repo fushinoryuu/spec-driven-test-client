@@ -1,0 +1,9 @@
+{
+  "services": [
+    {
+      "repo": "storefront-backend",
+      "specsPath": "specs",
+      "files": ["customers-service-v0.yaml", "customers-service-v1.yaml", "orders-service-v0.yaml", "orders-service-v1.yaml", "shipping-service-v0.yaml", "shipping-service-v1.yaml"]
+    }
+  ]
+}

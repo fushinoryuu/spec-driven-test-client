@@ -63,15 +63,16 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 ### Phase 0: Foundations and decisions
 
-- [ ] Repo skeleton, TypeScript strict, ESM, lint and format
-- [ ] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target, call shape
-- [ ] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison), with no default generator
-- [ ] Java requirement handled if OpenAPI Generator is chosen (local, CI, and Docker fallback)
+- [x] Repo skeleton, TypeScript strict, ESM, lint and format
+- [x] Decision records: spec version, generator, generated-code strategy, facade strategy, auth, publish target, call shape
+- [x] Generator spike (OpenAPI Generator `typescript-fetch` and `typescript-axios`, plus at least one TypeScript-native generator for comparison), with no default generator
+- [x] ~~Java requirement handled if OpenAPI Generator is chosen (local, CI, and Docker fallback)~~ Not needed: the spike chose hey-api, which needs no Java (decision record 0002)
 
 ### Phase 1: Demo target
 
-- [ ] Contract agreed with the backend project: versioned specs (`<service>-service-v<N>.yaml`, a `v0` operational and a `v1` business spec per service) with stable `operationId` and `tag` values, a shared `Problem` schema, an `apiKey` security scheme, `GET /v0/version` on every service, and LaunchDarkly as the flag source
-- [ ] Specs pulled in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
+- [x] Contract agreed with the backend project: versioned specs (`<service>-service-v<N>.yaml`, a `v0` operational and a `v1` business spec per service) with stable `operationId` and `tag` values, a shared `Problem` schema, an `apiKey` security scheme, `GET /v0/version` on every service, and LaunchDarkly as the flag source
+- [x] `npm run copy-specs` copies the specs from the sibling service checkouts into `specs/`
+- [ ] Specs copied in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
 - [ ] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up
 - [ ] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
@@ -113,7 +114,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 ### Phase 5: Spec-change workflow, CI, release
 
-- [ ] `sync-specs` script and documented update steps
+- [ ] `copy-specs` extended to copy the stage manifest, plus documented update steps
 - [ ] Breaking-change detection on spec changes, including an added or removed API version of a service
 - [ ] CI: lint, typecheck, unit, generate-check and the example suites. The scheduled smoke run against `prod` belongs to the backend project, with a recipe in `docs/backend-setup.md`
 - [ ] Semver rules driven by spec diff, changelog entry per release

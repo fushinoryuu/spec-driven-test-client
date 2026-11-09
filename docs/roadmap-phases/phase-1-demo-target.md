@@ -19,7 +19,7 @@ Every Storefront service publishes its API in versions. The version is part of t
 | Deliverable                                                                                                                     | Location                                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | The backend's OpenAPI specs: a `v0` (operational) and a `v1` (business) spec for each of the three services, six files at first | `specs/<service>-service-v<N>.yaml`, for example `specs/customers-service-v0.yaml` and `specs/customers-service-v1.yaml` |
-| Spec source record (backend ref, spec version, and pull date for each spec)                                                     | `specs/sources.json`                                                                                                     |
+| Spec copy script and its config (the services and spec files to copy from the sibling repositories)                             | `scripts/copy-specs.ts`, `specs.config.json`                                                                             |
 | Contract checklist with gaps                                                                                                    | `docs/backend-contract.md`                                                                                               |
 | Stage readiness check                                                                                                           | `scripts/check-stage.ts`                                                                                                 |
 | Local mocks                                                                                                                     | `mock/`                                                                                                                  |
@@ -85,16 +85,17 @@ Check each of these in the generated output, and note anything the generator han
 
 ### 1. Agree the contract
 
-- [ ] Walk through the "what the library needs" table with the backend's handoff doc. Until it exists (the backend's BEP-19), record "not yet published".
-- [ ] Write `docs/backend-contract.md` listing each need, its status (provided, partial, missing, not yet published), and the action if not provided.
-- [ ] Write down the naming rule, which the backend confirmed: bundled specs are `<service>-service-v<N>.yaml`, the facade name is the camel-cased file name without the suffix (`ordersService`), and the suffix is the version segment (`v1`).
+- [x] Walk through the "what the library needs" table with the backend's handoff doc. Until it exists (the backend's BEP-19), record "not yet published".
+- [x] Write `docs/backend-contract.md` listing each need, its status (provided, partial, missing, not yet published), and the action if not provided.
+- [x] Write down the naming rule, which the backend confirmed: bundled specs are `<service>-service-v<N>.yaml`, the facade name is the camel-cased file name without the suffix (`ordersService`), and the suffix is the version segment (`v1`).
 
-### 2. Pull the specs once by hand
+### 2. Copy the specs from the backend checkout
 
-Before the Phase 5 sync script exists:
+The source is a local checkout of the backend, cloned beside this repository (decision record 0007).
 
-- [ ] Copy the latest published specs (v0.1.0 drafts or later) from the backend's `specs/` folder into `specs/`: the `v0` and `v1` file of each of the three services. Record the backend commit and each spec's `info.version` in `specs/sources.json`. The backend keeps its own source record. This file records what the library pulled. The backend publishes the shipping draft first, so try the generator on it early, and pull all of them together for this task.
-- [ ] Validate each spec with the generator's `validate` command (or an equivalent) and fix nothing locally. If a spec is wrong, raise it as a GitHub issue in the backend repository and pull it again.
+- [x] `npm run copy-specs` reads `specs.config.json`, checks the listed files (they exist, are valid OpenAPI 3.0.x YAML with an `info.version`, and are named `<service>-service-v<N>.yaml`), and replaces the contents of `specs/` with them. A failed run leaves `specs/` as it was. It keeps no record of where a spec came from, because the committed `specs/` folder and its git history are the record.
+- [ ] Run it from a backend checkout on `main` to copy the latest published specs (v0.1.0 drafts or later): the `v0` and `v1` file of each of the three services. Copy all of them together, so a change that spans services is one library change.
+- [ ] Validate each spec with the generator's `validate` command (or an equivalent) and fix nothing locally. If a spec is wrong, raise it as a GitHub issue in the backend repository, update the checkout and copy again.
 
 ### 3. Review the specs as generator input
 
@@ -115,11 +116,11 @@ Before the Phase 5 sync script exists:
 
 ### 5. API keys and the flag token
 
-- [ ] Document how to get the keys: run the backend's key retrieval script after deploy, then set the environment variables the library expects (names are defined in Phase 3, Auth) or store them as CI secrets.
-- [ ] Expect keys to change. The `dev` stage is recreated on every backend pull request run, so its keys and base URLs differ each time. Take fresh values from the stage manifest and the key retrieval script on every run.
-- [ ] Keep keys in an untracked local file, such as `.env`, and make sure it is ignored by git.
-- [ ] Only `tests` is needed for most work. Ask for `admin` only when working on the simulation endpoint tests.
-- [ ] The flag token is a separate secret. It is a read-only LaunchDarkly REST API token, set by an environment variable the same way, never printed, and never committed. The backend's hand-off doc states which role it needs.
+- [x] Document how to get the keys: run the backend's key retrieval script after deploy, then set the environment variables the library expects (names are defined in Phase 3, Auth) or store them as CI secrets.
+- [x] Expect keys to change. The `dev` stage is recreated on every backend pull request run, so its keys and base URLs differ each time. Take fresh values from the stage manifest and the key retrieval script on every run.
+- [x] Keep keys in an untracked local file, such as `.env`, and make sure it is ignored by git.
+- [x] Only `tests` is needed for most work. Ask for `admin` only when working on the simulation endpoint tests.
+- [x] The flag token is a separate secret. It is a read-only LaunchDarkly REST API token, set by an environment variable the same way, never printed, and never committed. The backend's hand-off doc states which role it needs.
 - [ ] Link to the backend's key rotation runbook.
 
 ### 6. Local mocks
@@ -146,7 +147,7 @@ The backend plans two kinds of spec change for the demo and writes its change no
 
 ## Acceptance criteria
 
-- The `v0` and `v1` specs of the three services (v0.1.0 drafts or later) are in `specs/` with a recorded source commit, and each passes validation.
+- The `v0` and `v1` specs of the three services (v0.1.0 drafts or later) are in `specs/`, copied with `npm run copy-specs` from a backend checkout on `main`, and each passes validation.
 - `docs/backend-contract.md` exists, with every gap either closed or raised in the backend project as a GitHub issue.
 - The stage readiness check passes its unit tests (all services healthy, unreachable service, version mismatch per version, stage mismatch, warm-up cases). Run by hand against `prod`, and against `dev` while a dev stack is deployed, it passes, and with `--warmup` it reports the Aurora warm-up time.
 - The effect table has been verified by regenerating with the planned changes.
