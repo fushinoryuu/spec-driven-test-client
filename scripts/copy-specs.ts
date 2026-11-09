@@ -372,20 +372,20 @@ export function formatSummary(result: CopySpecsResult): string {
     return lines.join('\n');
 }
 
-async function main(): Promise<void> {
-    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/** What `npm run copy-specs` does: prints the summary or the problems, and returns the exit code. */
+export async function runCli(root: string): Promise<number> {
     try {
         console.log(formatSummary(await copySpecs({ root })));
+        return 0;
     } catch (error) {
         if (error instanceof CopySpecsError) {
             console.error(`copy-specs failed.${error.specsChanged ? '' : ' specs/ was not changed.'}\n${error.message}`);
-            process.exitCode = 1;
-            return;
+            return 1;
         }
         throw error;
     }
 }
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    await main();
+    process.exitCode = await runCli(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 }

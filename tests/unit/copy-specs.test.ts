@@ -1,10 +1,10 @@
 import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CopySpecsError, copySpecs, formatSummary, parseConfig, type ServiceSource } from '../../scripts/copy-specs.js';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { CopySpecsError, copySpecs, formatSummary, parseConfig, runCli, type ServiceSource } from '../../scripts/copy-specs.js';
 
-// Only the rollback test replaces rename. Every other test uses the real one.
+// Only the tests of a swap that fails part way replace rename, and they put the real one back. Every other test uses the real one.
 vi.mock('node:fs/promises', async (importOriginal) => {
     const actual = await importOriginal<typeof import('node:fs/promises')>();
     return { ...actual, rename: vi.fn(actual.rename) };
@@ -254,34 +254,138 @@ describe('copySpecs', () => {
         });
     });
 
-    it('puts specs/ back as it was when the swap fails part way', async () => {
+    describe('when the swap fails part way', () => {
+        /**
+         * The swap makes two renames to move the old files aside, then one per new file. Rename number 4 is the
+         * second new file moving in. With `restoreFails`, every rename after it fails too, so the old files
+         * cannot be put back.
+         */
+        async function failRenameAt(failAt: number, restoreFails: boolean): Promise<{ calls: () => number; undo: () => void }> {
+            const actual = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+            let calls = 0;
+            vi.mocked(rename).mockImplementation(async (from, to) => {
+                calls += 1;
+                if (calls === failAt || (restoreFails && calls > failAt)) {
+                    throw new Error('disk trouble');
+                }
+                return actual.rename(from, to);
+            });
+            return { calls: () => calls, undo: () => vi.mocked(rename).mockImplementation(actual.rename) };
+        }
+
+        beforeEach(async () => {
+            await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
+            await write(path.join(parent, 'service-repo', 'specs', SHIPPING_V1), spec('1.0.0'));
+            await write(path.join(root, 'specs', 'previous-service-v1.yaml'), spec('0.9.0'));
+            await write(path.join(root, 'specs', ORDERS_V1), spec('0.8.0'));
+            await writeConfig([service([ORDERS_V1, SHIPPING_V1])]);
+        });
+
+        it('puts specs/ back as it was', async () => {
+            const before = await snapshot(path.join(root, 'specs'));
+            const failure = await failRenameAt(4, false);
+
+            try {
+                await expect(run()).rejects.toThrow('disk trouble');
+            } finally {
+                failure.undo();
+            }
+
+            expect(failure.calls()).toBeGreaterThan(4);
+            expect(await snapshot(path.join(root, 'specs'))).toEqual(before);
+            expect(await leftovers()).toEqual([]);
+        });
+
+        it('keeps the old files in a backup folder and says specs/ changed when they cannot be put back', async () => {
+            const failure = await failRenameAt(4, true);
+
+            let error: unknown;
+            try {
+                error = await run().catch((caught: unknown) => caught);
+            } finally {
+                failure.undo();
+            }
+
+            expect(error).toBeInstanceOf(CopySpecsError);
+            expect((error as CopySpecsError).specsChanged).toBe(true);
+            expect((error as CopySpecsError).message).toMatch(/specs\/ could not be fully restored/);
+            expect((error as CopySpecsError).message).toMatch(/disk trouble/);
+
+            const work = await leftovers();
+            expect(work).toHaveLength(1);
+            expect((await readdir(path.join(root, work[0], 'backup'))).sort()).toEqual([ORDERS_V1, 'previous-service-v1.yaml']);
+            expect(await readFile(path.join(root, work[0], 'backup', ORDERS_V1), 'utf8')).toBe(spec('0.8.0'));
+        });
+    });
+});
+
+describe('runCli', () => {
+    let log: MockInstance<typeof console.log>;
+    let logError: MockInstance<typeof console.error>;
+
+    beforeEach(() => {
+        log = vi.spyOn(console, 'log').mockImplementation(() => {});
+        logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        log.mockRestore();
+        logError.mockRestore();
+    });
+
+    it('prints the summary and returns exit code 0 when the copy works', async () => {
         await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
-        await write(path.join(parent, 'service-repo', 'specs', SHIPPING_V1), spec('1.0.0'));
+        await writeConfig([service([ORDERS_V1])]);
+
+        expect(await runCli(root)).toBe(0);
+
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('specs/ updated: 1 added, 0 changed, 0 removed, 0 unchanged.'));
+        expect(logError).not.toHaveBeenCalled();
+    });
+
+    it('prints the problem, says specs/ was not changed and returns exit code 1 when a check fails', async () => {
+        await mkdir(path.join(parent, 'service-repo', 'specs'), { recursive: true });
         await write(path.join(root, 'specs', 'previous-service-v1.yaml'), spec('0.9.0'));
-        await write(path.join(root, 'specs', ORDERS_V1), spec('0.8.0'));
-        await writeConfig([service([ORDERS_V1, SHIPPING_V1])]);
+        await writeConfig([service([ORDERS_V1])]);
         const before = await snapshot(path.join(root, 'specs'));
 
-        // Two old files move aside, the first new file moves in, and the second new file fails.
+        expect(await runCli(root)).toBe(1);
+
+        expect(logError).toHaveBeenCalledTimes(1);
+        const message = String(logError.mock.calls[0][0]);
+        expect(message).toContain('copy-specs failed. specs/ was not changed.');
+        expect(message).toContain('../service-repo/specs/orders-service-v1.yaml: the file does not exist');
+        expect(log).not.toHaveBeenCalled();
+        expect(await snapshot(path.join(root, 'specs'))).toEqual(before);
+    });
+
+    it('prints the problem without the "was not changed" line when specs/ could not be restored', async () => {
+        await write(path.join(parent, 'service-repo', 'specs', ORDERS_V1), spec('1.0.0'));
+        await write(path.join(root, 'specs', 'previous-service-v1.yaml'), spec('0.9.0'));
+        await writeConfig([service([ORDERS_V1])]);
+        // One old file moves aside (rename 1), the new file fails to move in (rename 2), and so does the restore.
         const actual = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
         let calls = 0;
         vi.mocked(rename).mockImplementation(async (from, to) => {
             calls += 1;
-            if (calls === 4) {
+            if (calls > 1) {
                 throw new Error('disk trouble');
             }
             return actual.rename(from, to);
         });
 
+        let code: number;
         try {
-            await expect(run()).rejects.toThrow('disk trouble');
+            code = await runCli(root);
         } finally {
             vi.mocked(rename).mockImplementation(actual.rename);
         }
 
-        expect(calls).toBeGreaterThan(4);
-        expect(await snapshot(path.join(root, 'specs'))).toEqual(before);
-        expect(await leftovers()).toEqual([]);
+        expect(code).toBe(1);
+        const message = String(logError.mock.calls[0][0]);
+        expect(message).toContain('copy-specs failed.');
+        expect(message).not.toContain('specs/ was not changed');
+        expect(message).toContain('could not be fully restored');
     });
 });
 
