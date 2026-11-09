@@ -38,4 +38,3 @@ Phase 5 extends the same script to copy the stage manifest and to detect breakin
 - A team with many services lists each repository in `specs.config.json`, and clones them all beside the library.
 - Fetching from a remote source (a git ref, an HTTP URL, a release asset or a spec registry) is not supported. It can be added later by a new decision record if a team needs it.
 - Unit and generation checks never touch the Storefront services.
-- A consumer project proves the published package works.
