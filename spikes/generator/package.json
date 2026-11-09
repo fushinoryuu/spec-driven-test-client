@@ -24,6 +24,8 @@
     "vitest": "5.0.5"
   },
   "overrides": {
-    "js-yaml": "^4.3.2"
+    "js-yaml": "^4.3.2",
+    "glob": "^14.0.4",
+    "basic-ftp": "^6.2.6"
   }
 }

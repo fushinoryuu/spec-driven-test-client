@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-30
+- Updated: 2026-11-09 (ALP-12). Added the findings from the six Storefront drafts and corrected the body field name.
 
 ## Context
 
@@ -44,10 +45,10 @@ export default {
 Other generated shapes worth knowing about:
 
 - The request object is the first argument, and transport options (the `client` instance, headers, signal) are an optional second argument. An operation with no parameters takes the options as its only argument. The facade hides both.
-- Header parameters keep their wire name as the field name (`'Idempotency-Key'`). The request body is a field named after its schema (`createOrderRequest`). That matches the target experience in the roadmap.
+- Header parameters keep their wire name as the field name (`'Idempotency-Key'`). The request body is a field named after its schema, so the schema `CreateOrder` gives the field `createOrder` (the spike spec named it `createOrderRequest`). That matches the target experience in the roadmap.
 - Operations are static methods and use a module-level default client. The facade passes its own `client` per call, so each service and environment gets its own base URL and key.
 - The API key comes from the spec's security scheme: each operation declares it, and the client's `auth` option supplies the value.
-- hey-api copies its HTTP runtime (`client/` and `core/`, about 1,600 lines) into every output folder. Three services mean three copies, which is the same as OpenAPI Generator's `runtime.ts`. The drift check covers them.
+- hey-api copies its HTTP runtime (`client/` and `core/`, about 1,700 non-blank lines) into every output folder. Each spec is generated into its own folder, so the six Storefront specs mean six copies, which is the same as OpenAPI Generator's `runtime.ts` once per folder. The drift check covers them.
 
 ## Spike notes
 
@@ -112,3 +113,15 @@ All five candidates read the spec without warnings (OpenAPI Generator's `validat
 - **Templates.** hey-api has no Mustache templates. Its customization is plugins, and [0008](0008-custom-generator-templates.md) applies to them in the same way: the decision rule applies before any custom plugin, and the default is none.
 - **Phase 2 is rewritten.** [Phase 2](../roadmap-phases/phase-2-generation-pipeline.md) was written for OpenAPI Generator (`openapitools.json`, a Java jar, Mustache templates). Its tasks are rewritten around `openapi-ts.config.mjs` when the Phase 2 tickets are filed.
 - **Naming collisions across services** are still decision record 0011 (Phase 2). The spike shows the starting point: the shared `Error` schema is emitted as a type named `Error` in every service folder, so each service's generated types live in their own folder and the facade imports them by service.
+
+## Findings from the Storefront drafts (ALP-12)
+
+The six Storefront drafts (customers `v0` and orders at 0.1.0, shipping at 0.1.1, customers `v1` at 0.2.0) were generated with the options above, each spec into its own folder. The full review is in [the backend contract](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12). What it means for this record:
+
+- **The chosen options hold.** All six generate without warnings and typecheck with `lib: ["ES2023", "DOM"]`. Without `DOM` each folder has 55 errors, so `"DOM"` still goes into `tsconfig.json` with the first committed client. The body field is named after the schema (`createCustomer`, `createOrder`), the `Idempotency-Key` header is a required field, and the errors are typed per status.
+- **Two options to decide in Phase 2, not applied here.** They change the generated types and the run-time values, so each is a decision and not a default:
+    - `enums: 'javascript'` on `@hey-api/typescript` adds a runtime `const` object next to the union for `CustomerStatus`, `OrderStatus`, `ShipmentStatus` and `AddressType`. Without it the enums are string unions only.
+    - `@hey-api/transformers` with `dates: true`, and `transformer: true` on the SDK plugin, turns the `createdAt` and `updatedAt` strings into `Date` values. Without it they stay strings. Both were tried on `orders-service-v1.yaml` and generate cleanly.
+- **Response headers have no generated type.** `Retry-After` on the 503 and `Location` on the 201 are in the specs, but not in any generated type. The facade reads them from the response ([Phase 3](../roadmap-phases/phase-3-client-facade.md)).
+- **Names collide across specs.** `Problem` and `FieldError` appear in all six folders, `Cursor`, `Limit` and `NextCursor` in the three `v1` folders, and `Operations`, `getHealth`, `getVersion` and their types in the three `v0` folders. Every copy is identical. One folder per spec avoids every clash, and decision record 0011 (Phase 2) settles the strategy.
+- **No template override is needed.** Nothing in the six drafts called for one, so [0008](0008-custom-generator-templates.md) is not triggered.

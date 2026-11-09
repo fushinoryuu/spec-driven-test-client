@@ -15,7 +15,7 @@ const version = await apitest.ordersService.v0.operations.getVersion();
 expect(version.status).toBe(200);
 
 const created = await apitest.customersService.v1.customers.createCustomer({
-    createCustomerRequest: { firstName: 'Jane' } // field names come from the generated request type
+    createCustomer: { email: 'jane@example.com', firstName: 'Jane', lastName: 'Doe' } // field names come from the generated request type
 });
 const customer = expectStatus(201, created); // the typed body, or a failure naming the status and correlation id
 
@@ -45,7 +45,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - The specs are **OpenAPI 3.0.3** specs, the version the backend uses. The generator is hey-api `openapi-ts`, chosen by the Phase 0 spike (decision record 0002).
 - The project has its own name, examples and specs, all invented for the Storefront demo.
 - The demo backend is the Storefront backend ([storefront-backend](https://github.com/fushinoryuu/storefront-backend), see its roadmap): three AWS microservices built with CDK, customers on Aurora, orders on DynamoDB, and shipping driven by events. Each publishes versioned OpenAPI 3.0.3 specs: a `v0` (operational) and a `v1` (business) for each service at first, `v2` later, named `<service>-service-v<N>.yaml`. They are the library's input. It lives in its own project and its API uses API Gateway API keys. It has two stages: `dev`, which each of its pull request runs deploys and destroys, and `prod`, which stays up. Its draft specs (v0.1.0) come first, and each business spec reaches v1.0.0 when its service ships. Feature flags are in LaunchDarkly, with no backend endpoint for flag state.
-- Spec problems are raised as GitHub issues in the backend repository. [docs/backend-contract.md](backend-contract.md) lists what the library needs from the backend and the status of each need.
+- Spec problems are raised as bug tickets in the backend project (BEP). [docs/backend-contract.md](backend-contract.md) lists what the library needs from the backend and the status of each need.
 
 ## Phases
 
@@ -72,7 +72,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 - [x] Contract agreed with the backend project: versioned specs (`<service>-service-v<N>.yaml`, a `v0` operational and a `v1` business spec per service) with stable `operationId` and `tag` values, a shared `Problem` schema, an `apiKey` security scheme, `GET /v0/version` on every service, and LaunchDarkly as the flag source
 - [x] `npm run copy-specs` copies the specs from the sibling service checkouts into `specs/`
-- [ ] Specs copied in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
+- [x] Specs copied in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
 - [ ] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up
 - [ ] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)

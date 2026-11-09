@@ -207,6 +207,16 @@ test('express shipping is offered', async ({ api, flags }) => {
 - [ ] No flag writes. A provider has no `set`, and nothing in the library changes a flag's state.
 - [ ] Document the providers, the helpers and the skip reporting in `docs/feature-flags.md`.
 
+### What the Storefront drafts need from the facade
+
+These come from the spec review in ALP-12 (see the review section of [backend-contract.md](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12)). The generator does not cover them.
+
+- [ ] **Response headers.** The generated types describe bodies only, so `Retry-After` (seconds, on the 503) and `Location` (on the 201 of `createCustomer`, `addAddress` and `createOrder`) have no type. The `headers` of a call result are read at run time. Provide a small helper for `Retry-After`, which warm-up uses, and keep `Location` available to tests.
+- [ ] **A flag-off 404 looks like an unknown id.** `advanceShipment` answers 404 with the same `Problem` and problem `type` whether the simulation flag is off or the shipment does not exist, and the API does not report the flag. A flag-aware test reads the flag state first and uses a shipment that exists, as in the example above.
+- [ ] **Caller types are in prose.** The specs say in text that `advanceShipment` and a `listOrders` call without `customerId` need the `admin` key. No machine-readable field says which key a route takes, so the test or the config chooses the caller type (`api.as('admin')`).
+- [ ] **`specVersions` is a string map.** Its keys are not typed, so the version check compares them with the spec file suffixes at run time (ALP-13).
+- [ ] **Every customers route can answer 503.** Since customers `v1` 0.2.0 (BEP-31) each business route documents the shared 503 with `Retry-After`, so the error type of a customers call includes it. The facade passes it through like any other status, and only warm-up and the opt-in retries act on it.
+
 ### Protected-environment guard
 
 Integration tests that can point at any environment need a seatbelt.
