@@ -280,6 +280,42 @@ describe('checkStage with --warmup', () => {
         expect(clock.sleeps).toEqual([5_000]);
     });
 
+    it('waits at least a second when Retry-After is 0', async () => {
+        const clock = fakeClock();
+        let answers = 0;
+        const server = fakeServices({ 'widgets.test': WIDGETS_VERSIONS }, { [readyPath]: () => (++answers === 1 ? json({}, 503, { 'Retry-After': '0' }) : json({ status: 'ok' })) });
+
+        const report = await checkStage(options(await specsFolder(), { warmup: true, env: { [keyVariableName('dev')]: KEY }, fetch: server.fn, sleep: clock.sleep, now: clock.now }));
+
+        expect(report.services[0].readiness).toMatchObject({ ok: true, attempts: 2 });
+        expect(clock.sleeps).toEqual([1_000]);
+    });
+
+    it('does not spin on a backend that always answers 503 with Retry-After 0', async () => {
+        const clock = fakeClock();
+        const server = fakeServices({ 'widgets.test': WIDGETS_VERSIONS }, { [readyPath]: () => json({ title: 'Service unavailable' }, 503, { 'Retry-After': '0' }) });
+
+        const report = await checkStage(options(await specsFolder(), { warmup: true, env: { [keyVariableName('dev')]: KEY }, fetch: server.fn, sleep: clock.sleep, now: clock.now, warmupBudgetMs: 90_000 }));
+
+        expect(report.ok).toBe(false);
+        // One call a second for 90 seconds at most, and never a call without a wait before it.
+        const readyCalls = server.calls.filter((call) => call.url.pathname === '/v0/health/ready').length;
+        expect(readyCalls).toBeLessThanOrEqual(90);
+        expect(clock.sleeps).toHaveLength(readyCalls - 1);
+        expect(clock.sleeps.every((ms) => ms >= 1_000)).toBe(true);
+        expect(report.services[0].problems).toEqual([`readiness did not succeed within 90.0s (${readyCalls} attempts, last answered 503).`]);
+    });
+
+    it('lets the minimum wait be changed', async () => {
+        const clock = fakeClock();
+        let answers = 0;
+        const server = fakeServices({ 'widgets.test': WIDGETS_VERSIONS }, { [readyPath]: () => (++answers === 1 ? json({}, 503, { 'Retry-After': '0' }) : json({ status: 'ok' })) });
+
+        await checkStage(options(await specsFolder(), { warmup: true, env: { [keyVariableName('dev')]: KEY }, fetch: server.fn, sleep: clock.sleep, now: clock.now, warmupMinDelayMs: 250 }));
+
+        expect(clock.sleeps).toEqual([250]);
+    });
+
     it('fails when the time budget runs out', async () => {
         const clock = fakeClock();
         const server = fakeServices({ 'widgets.test': WIDGETS_VERSIONS }, { [readyPath]: () => json({ title: 'Service unavailable' }, 503, { 'Retry-After': '30' }) });

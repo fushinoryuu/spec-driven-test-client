@@ -30,7 +30,9 @@ export const DEFAULTS = {
     /** One warm-up call. API Gateway gives up at 29 seconds, so a longer wait only hides a dead connection. */
     warmupAttemptTimeoutMs: 35_000,
     /** Wait before the next warm-up call when the answer has no usable `Retry-After`. */
-    warmupDefaultDelayMs: 5_000
+    warmupDefaultDelayMs: 5_000,
+    /** The shortest wait between two warm-up calls. The spec allows `Retry-After: 0`, which must not become a tight loop. */
+    warmupMinDelayMs: 1_000
 };
 
 export interface LibrarySpec {
@@ -98,6 +100,7 @@ export interface CheckStageOptions {
     warmupBudgetMs?: number;
     warmupAttemptTimeoutMs?: number;
     warmupDefaultDelayMs?: number;
+    warmupMinDelayMs?: number;
 }
 
 export class CheckStageError extends Error {
@@ -246,6 +249,7 @@ async function warmUp(url: string, key: string, context: Context): Promise<{ res
     const budgetMs = options.warmupBudgetMs ?? DEFAULTS.warmupBudgetMs;
     const attemptTimeoutMs = options.warmupAttemptTimeoutMs ?? DEFAULTS.warmupAttemptTimeoutMs;
     const defaultDelayMs = options.warmupDefaultDelayMs ?? DEFAULTS.warmupDefaultDelayMs;
+    const minDelayMs = options.warmupMinDelayMs ?? DEFAULTS.warmupMinDelayMs;
     const start = now();
     const deadline = start + budgetMs;
     let attempts = 0;
@@ -266,7 +270,7 @@ async function warmUp(url: string, key: string, context: Context): Promise<{ res
             return { result: { ok: false, elapsedMs: now() - start, attempts }, problem: `readiness failed: ${describeAnswer(answer)}.${hint}` };
         }
         last = describeAnswer(answer);
-        const delayMs = retryAfterMs(answer.retryAfter) ?? defaultDelayMs;
+        const delayMs = Math.max(retryAfterMs(answer.retryAfter) ?? defaultDelayMs, minDelayMs);
         if (now() + delayMs >= deadline) {
             break;
         }

@@ -81,7 +81,7 @@ npm run check-stage -- dev --warmup
 
 **What it checks.** For every service that has a spec in `specs/`, it calls the open routes `GET /v0/health` and `GET /v0/version`. It compares every entry of `specVersions` with the `info.version` of the spec whose file suffix matches the key (`v1` with `orders-service-v1.yaml`), and it checks that the service reports the stage you selected. A prefix that the service serves without a library spec, and a library spec whose prefix the service does not serve, are both failures. It prints one table and exits with 0 when everything passes, 1 when a check fails and 2 when it is used wrongly.
 
-**Warm-up.** `--warmup` also calls the readiness route (`getReadiness`) of the services that have one, which today is customers. That route needs the `tests` API key and touches the database, so it wakes a paused Aurora cluster. While the database resumes the route answers 503 (with `Retry-After`) or the gateway answers 504, so the script retries within 90 seconds and reports how long it took. Do not run it on a schedule, because a database that is queried all the time does not pause.
+**Warm-up.** `--warmup` also calls the readiness route (`getReadiness`) of the services that have one, which today is customers. That route needs the `tests` API key and touches the database, so it wakes a paused Aurora cluster. While the database resumes the route answers 503 (with `Retry-After`) or the gateway answers 504, so the script retries within 90 seconds and reports how long it took. It honors `Retry-After` (in seconds) and waits at least 1 second between calls, so a `Retry-After: 0` never becomes a tight loop. Do not run it on a schedule, because a database that is queried all the time does not pause.
 
 **Configuration.**
 
