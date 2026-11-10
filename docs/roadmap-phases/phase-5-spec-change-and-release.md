@@ -15,9 +15,9 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 | -------------------------------------------------------------------------------- | ------------------------------------------------- |
 | Stage manifest copy (an extension of the Phase 1 spec copy script)               | `scripts/copy-specs.ts`                           |
 | Spec diff and version-bump script                                                | `scripts/spec-diff.ts`, `scripts/next-version.ts` |
-| CI workflows                                                                     | `.github/workflows/ci.yml`, `release.yml`         |
+| CI workflows (`release.yml` is built in Phase 3 and extended here)               | `.github/workflows/ci.yml`, `release.yml`         |
 | Changelog generation                                                             | `scripts/changelog.ts`, `CHANGELOG.md`            |
-| Build and packaging config                                                       | `package.json` exports, build config              |
+| Build and packaging config (built in Phase 3)                                    | `package.json` exports, build config              |
 | Example consumer                                                                 | `examples/consumer/`                              |
 | Recipe for a project that consumes the package (the backend's Storefront suites) | `docs/backend-setup.md`                           |
 | Spec update runbook                                                              | `docs/updating-specs.md`                          |
@@ -53,7 +53,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 ### 3. Versioning and changelog
 
-- [ ] Semantic versioning for the package, driven by the diff: any breaking change means major, an added operation or field means minor, anything else means patch.
+- [ ] Semantic versioning for the package, driven by the diff: any breaking change means major, an added operation or field means minor, anything else means patch. Versions published since Phase 3 are `0.x` and were bumped by hand. Decide here how the automated rules take over from them and when the package becomes 1.0.0, and record it in decision record 0012.
 - [ ] Decide how the package version relates to spec versions (for example, independent semver with the spec versions listed in the changelog). Record the decision in decision record 0012.
 - [ ] `next-version` proposes the bump and a human confirms it in the PR.
 - [ ] Changelog entry per release listing added, removed, and changed operations per service, and the spec version each came from.
@@ -68,13 +68,14 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 - [ ] Keep unit and generation checks free of network access to the Storefront services, so a cloud outage cannot block unrelated work.
 - [ ] Stretch: token provider tests run in CI against the in-process mock OAuth2 server, which needs no cloud access and no secrets.
 
-### 5. Build and publish
+### 5. Release workflow
 
-- [ ] Build to a `dist/` folder with type declarations. Choose a build tool you can explain (plain `tsc` or a bundler such as tsup).
-- [ ] `package.json` `exports` for the main entry and the `./testing` subpath. Declare `vitest` as a peer dependency, because the testing helpers depend on it.
-- [ ] Decide on a registry: public npm, or GitHub Packages for a lower-stakes demo. Record the choice.
-- [ ] Release workflow: on merge to main (or a tag), build, run the full checks, publish with provenance if the registry supports it, and create a GitHub release from the changelog entry.
-- [ ] A dry-run mode (`npm pack` and inspect the contents) to run before the first real publish. Verify that no secrets, specs you do not want public, template overrides, or test output are in the tarball. The package ships built output and type declarations, not the generator inputs.
+The build, the registry choice (decision record 0006), the first release workflow, the tarball dry run and the first `0.x` publish are done in Phase 3. This task finishes the release path.
+
+- [ ] Check the tarball dry run still passes with `./testing` (Phase 4) in the package, and that `vitest` is declared as a peer dependency, because the testing helpers depend on it.
+- [ ] Release workflow: on merge to main (or a tag), use the version proposed by `next-version` instead of a hand-set one, run the full checks, publish with provenance if the registry supports it, and create a GitHub release from the changelog entry.
+- [ ] The release fails when the tag, `package.json` and the changelog entry disagree.
+- [ ] The step-by-step release instructions in `docs/publishing.md` (from Phase 3) are updated for the automated flow.
 
 ### 6. Example consumer
 
@@ -85,7 +86,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 
 Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. The library side (copy specs, generate, typecheck, publish) needs the specs and the mocks only. Running the Storefront suites against a deployed `dev` stack happens in the backend project, so that part comes after the backend has finished its services:
 
-- [ ] **v1.0.0:** the library is built from the v0 and v1 specs of the three Storefront services (v1.0.0 business specs) and published. The example consumer's tests pass against the mocks, and the backend's Storefront suites pass against `dev` using this package.
+- [ ] **v1.0.0:** the library is built from the v0 and v1 specs of the three Storefront services (v1.0.0 business specs) and published as 1.0.0, the first release after the `0.x` versions of Phase 3. The example consumer's tests pass against the mocks, and the backend's Storefront suites pass against `dev` using this package.
 - [ ] **v1.1.0 (non-breaking):** apply the backend's planned v1.1.0 changes to the `v1` specs (customers: optional `preferredLanguage`; orders: `GET /v1/orders/{orderId}/timeline` and an optional `notes` field on order creation; shipping: an optional `carrier` filter on the shipment list). Once the backend has deployed them to `dev`, run copy-specs and generate, and see `getOrderTimeline` appear in autocomplete on `ordersService.v1.orders`. Add one test, publish 1.1.0. Time the whole thing.
 - [ ] **`v2` beside `v1` (non-breaking for the library):** the backend adds `orders-service-v2.yaml` (`createOrder` requires `shippingAddressId`) and `shipping-service-v2.yaml` (status value `PICKED` renamed `PACKED`) next to the `v1` files. Run copy-specs and generate and see the new `v2` namespace appear while every `v1` call keeps compiling. The diff tool classifies the added versions as a minor change. Migrate one example from `v1` to `v2`, watch `tsc` flag the missing `shippingAddressId` and the old status value, fix it, and publish the minor version.
 - [ ] **Retire `v1` (breaking):** remove the `v1` specs, as the backend would when it retires `/v1`. Run generate and watch `tsc` flag every example that uses `v1`. The diff tool demands a major bump. Fix the examples, publish 2.0.0.
@@ -114,7 +115,7 @@ Spec changes are not the only reason generated code changes. Bumping the pinned 
 ## Risks and notes
 
 - **Over-trusting the diff tool.** Review its output on realistic changes before relying on it to gate releases.
-- **Publishing something private.** Check the tarball contents. Use a dry run first.
+- **Publishing something private.** Check the tarball contents. Use a dry run first (the first publish is in Phase 3).
 - **Credential handling.** CI secrets for the backend project's jobs must be scoped to the stages and caller types each job needs: the `prod` `tests` key for scheduled smoke runs, and never the `services` key. API keys are shared secrets.
 - **Version confusion.** If package versions and spec versions diverge, the changelog is the bridge, so keep it accurate.
-- **Cross-repo wiring is undecided on the backend side.** The backend project owns its Storefront suites and decides how its deploy-test-destroy flow installs this package. That wiring is not settled there yet, and its own end-to-end tests currently use plain `fetch`. This library supplies the package, the example consumer and `docs/backend-setup.md`, and revisits the details once the library has runnable tests.
+- **Cross-repo wiring is undecided on the backend side.** The backend project owns its Storefront suites and decides how its deploy-test-destroy flow installs this package. That wiring is not settled there yet, and its own end-to-end tests currently use plain `fetch`. This library supplies the package (published as `0.x` since Phase 3), the example consumer and `docs/backend-setup.md`, and revisits the details once the library has runnable tests.

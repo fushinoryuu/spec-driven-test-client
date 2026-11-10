@@ -1,0 +1,103 @@
+# Fixture: version 2 of a small versioned service, served next to version 1. It renames a field
+# and adds an operation that version 1 does not have. See widgets-service-v0.yaml.
+openapi: 3.0.3
+info:
+  title: Widgets service
+  version: 0.1.0
+security:
+  - apiKey: []
+tags:
+  - name: widgets
+paths:
+  /v2/widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      summary: Get one widget
+      tags:
+        - widgets
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The widget.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              example:
+                id: w-1
+                title: Sprocket
+        '404':
+          description: There is no widget with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: https://widgets.example/problems/not-found
+                title: Not found
+                status: 404
+                correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f10
+  /v2/widgets/{widgetId}/history:
+    get:
+      operationId: getWidgetHistory
+      summary: List the changes of one widget
+      tags:
+        - widgets
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The changes, oldest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - created
+                - renamed
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - correlationId
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        correlationId:
+          type: string

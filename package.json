@@ -10,6 +10,7 @@
   },
   "scripts": {
     "copy-specs": "node scripts/copy-specs.ts",
+    "check-stage": "node scripts/check-stage.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

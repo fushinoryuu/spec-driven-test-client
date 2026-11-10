@@ -2,7 +2,7 @@
 
 Make writing an integration test feel easy and safe. This phase adds the vitest setup, fixtures, test data helpers, and example suites that show what the library is for. It also proves the main promise: because tests are written against generated types, a spec change that breaks a call fails at typecheck time, before any request is sent.
 
-The helpers are part of the published package (`spec-driven-test-client/testing`), so a project that tests a real service can use them. The tests of the Storefront services live in the backend project, like the tests of any real service, and consume the package. This repository proves the toolkit against a small in-process stub service, with no cloud and no secrets, and the example consumer (Phase 5) is the template for the backend's setup.
+The helpers are part of the published package (`spec-driven-test-client/testing`), so a project that tests a real service can use them. The package is already published as `0.x` versions from Phase 3, so this phase adds the `./testing` export and the `vitest` peer dependency and releases the next `0.x` version with them. The tests of the Storefront services live in the backend project, like the tests of any real service, and consume the package. This repository proves the toolkit against a small in-process stub service, with no cloud and no secrets, and the example consumer (Phase 5) is the template for the backend's setup.
 
 ## Goals
 

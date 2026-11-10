@@ -21,14 +21,15 @@ npm ci
 
 ## Scripts
 
-| Command                | What it does                                                                                                    |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `npm run copy-specs`   | Copies the OpenAPI specs from the sibling service checkouts into `specs/`. See [Copying specs](#copying-specs). |
-| `npm run lint`         | Runs ESLint. `src/generated/` is excluded.                                                                      |
-| `npm run format:check` | Checks code formatting with Prettier. `src/generated/` is excluded.                                             |
-| `npm run format`       | Rewrites files with Prettier.                                                                                   |
-| `npm run typecheck`    | Runs the TypeScript compiler without emitting. Includes generated code.                                         |
-| `npm test`             | Runs the unit tests in `tests/unit/` with vitest.                                                               |
+| Command                | What it does                                                                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run copy-specs`   | Copies the OpenAPI specs from the sibling service checkouts into `specs/`. See [Copying specs](#copying-specs).                                      |
+| `npm run check-stage`  | Checks that a deployed stage is ready: every service is healthy and serves the spec versions in `specs/`. See [Checking a stage](#checking-a-stage). |
+| `npm run lint`         | Runs ESLint. `src/generated/` is excluded.                                                                                                           |
+| `npm run format:check` | Checks code formatting with Prettier. `src/generated/` is excluded.                                                                                  |
+| `npm run format`       | Rewrites files with Prettier.                                                                                                                        |
+| `npm run typecheck`    | Runs the TypeScript compiler without emitting. Includes generated code.                                                                              |
+| `npm test`             | Runs the unit tests in `tests/unit/` with vitest.                                                                                                    |
 
 CI runs the same checks, in the same order, on every pull request and every push to `main`.
 
@@ -68,3 +69,23 @@ projects/
 - The script keeps no record of where a spec came from. Commit the changed `specs/` files, and git history is the record.
 
 The reasons for these choices are in [decision record 0007](docs/decisions/0007-spec-source.md).
+
+## Checking a stage
+
+`npm run check-stage -- <stage>` (`dev` or `prod`) checks that a deployed stage is ready for tests, before you run any.
+
+```sh
+npm run check-stage -- dev
+npm run check-stage -- dev --warmup
+```
+
+**What it checks.** For every service that has a spec in `specs/`, it calls the open routes `GET /v0/health` and `GET /v0/version`. It compares every entry of `specVersions` with the `info.version` of the spec whose file suffix matches the key (`v1` with `orders-service-v1.yaml`), and it checks that the service reports the stage you selected. A prefix that the service serves without a library spec, and a library spec whose prefix the service does not serve, are both failures. It prints one table and exits with 0 when everything passes, 1 when a check fails and 2 when it is used wrongly.
+
+**Warm-up.** `--warmup` also calls the readiness route (`getReadiness`) of the services that have one, which today is customers. That route needs the `tests` API key and touches the database, so it wakes a paused Aurora cluster. While the database resumes the route answers 503 (with `Retry-After`) or the gateway answers 504, so the script retries within 90 seconds and reports how long it took. It honors `Retry-After` (in seconds) and waits at least 1 second between calls, so a `Retry-After: 0` never becomes a tight loop. Do not run it on a schedule, because a database that is queried all the time does not pause.
+
+**Configuration.**
+
+- Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). It has no URLs yet, because no stage is deployed. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
+- The key for `--warmup` is read from the environment variable `APITEST_<STAGE>_TESTS_API_KEY` (for example `APITEST_DEV_TESTS_API_KEY`), set from the backend's key retrieval script or an untracked `.env` file. The script sends it only to the readiness route and never prints it.
+
+The script uses plain `fetch`. It does not need the generated clients, which arrive in Phase 2.

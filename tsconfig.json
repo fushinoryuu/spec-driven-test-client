@@ -7,8 +7,9 @@
     "types": ["node"],
     "strict": true,
     "isolatedModules": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts", "vitest.config.ts"]
+  "include": ["src", "tests", "scripts", "config", "vitest.config.ts"]
 }
