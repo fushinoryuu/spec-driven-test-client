@@ -367,6 +367,12 @@ describe('the default URLs', () => {
     });
 });
 
+/** A JSON body of exactly this many bytes. */
+function bodyOfSize(bytes: number): string {
+    const overhead = '{"pad":""}'.length;
+    return JSON.stringify({ pad: 'x'.repeat(bytes - overhead) });
+}
+
 describe('the HTTP servers', () => {
     it('answer over a real connection: both versions from one base URL, a header, and a 204 with no body', async () => {
         running = await startMocks({ specsDir: folder, basePort: 0 });
@@ -380,6 +386,16 @@ describe('the HTTP servers', () => {
         expect(deleted.status).toBe(204);
         expect(await deleted.text()).toBe('');
         expect((await fetch(`${base}/v1/gadgets`, { method: 'POST', headers: { ...JSON_HEADERS, 'idempotency-key': 'k' }, body: '{oops' })).status).toBe(400);
+    });
+
+    it('accept a body of exactly 1 MB (1,000,000 bytes) and answer 400 to one byte more', async () => {
+        running = await startMocks({ specsDir: folder, basePort: 0 });
+        const send = (bytes: number) => fetch(`${running[0].url}/v1/gadgets`, { method: 'POST', headers: { ...JSON_HEADERS, 'idempotency-key': 'k' }, body: bodyOfSize(bytes) });
+        expect((await send(1_000_000)).status).toBe(201);
+        const tooBig = await send(1_000_001);
+        expect(tooBig.status).toBe(400);
+        expect(tooBig.headers.get('x-mock-reason')).toBe('The request body is larger than 1 MB.');
+        expect(await tooBig.json()).toMatchObject({ status: 400, detail: 'The request body is larger than 1 MB.' });
     });
 
     it('start one per service, on its own port, listening only on the loopback address', async () => {
@@ -398,7 +414,7 @@ describe('the HTTP servers', () => {
 });
 
 describe('npm run mock', () => {
-    async function run(argv: string[]): Promise<{ code: number; out: string; err: string }> {
+    async function run(argv: string[], whileRunning?: (mocks: RunningMock[], out: string[]) => Promise<void>): Promise<{ code: number; out: string; err: string }> {
         const out: string[] = [];
         const err: string[] = [];
         const code = await runStart({
@@ -406,8 +422,12 @@ describe('npm run mock', () => {
             argv: ['--specs', '.', ...argv],
             log: (text) => out.push(text),
             error: (text) => err.push(text),
-            onStarted: async (_mocks, stop) => {
-                await stop();
+            onStarted: async (mocks, stop) => {
+                try {
+                    await whileRunning?.(mocks, out);
+                } finally {
+                    await stop();
+                }
             }
         });
         return { code, out: out.join('\n'), err: err.join('\n') };
@@ -418,6 +438,38 @@ describe('npm run mock', () => {
         expect(code).toBe(0);
         expect(out).toMatch(/gadgets-service\s+http:\/\/127\.0\.0\.1:\d+\s+v0 0\.1\.0, v1 0\.4\.0/);
         expect(err).toContain('warning: gadgets-service getNotes (200)');
+    });
+
+    it('passes --stage on, so GET /v0/version reports it', async () => {
+        let stage: unknown;
+        const { code } = await run(['--port', '0', '--stage', 'demo'], async (mocks) => {
+            stage = ((await (await fetch(`${mocks[0].url}/v0/version`)).json()) as { stage: string }).stage;
+        });
+        expect(code).toBe(0);
+        expect(stage).toBe('demo');
+    });
+
+    it('prints a line for every request, and prints none with --quiet', async () => {
+        const request = async (mocks: RunningMock[]): Promise<void> => {
+            await (await fetch(`${mocks[0].url}/v0/health`)).text();
+        };
+        const line = 'gadgets-service GET /v0/health -> 200';
+        const loud = await run(['--port', '0'], async (mocks, out) => {
+            await request(mocks);
+            for (let waited = 0; !out.includes(line) && waited < 1000; waited += 20) {
+                await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+        });
+        expect(loud.out).toContain(line);
+
+        const quiet = await run(['--port', '0', '--quiet'], async (mocks) => {
+            await request(mocks);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+        });
+        expect(quiet.code).toBe(0);
+        expect(quiet.out).not.toContain(' -> ');
+        expect(quiet.out).toContain('Mocks of the specs in');
+        expect(quiet.err).toContain('warning: gadgets-service getNotes (200)');
     });
 
     it('rejects a wrong option or port with the usage and exit code 2', async () => {
