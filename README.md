@@ -25,6 +25,7 @@ npm ci
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run copy-specs`   | Copies the OpenAPI specs from the sibling service checkouts into `specs/`. See [Copying specs](#copying-specs).                                      |
 | `npm run check-stage`  | Checks that a deployed stage is ready: every service is healthy and serves the spec versions in `specs/`. See [Checking a stage](#checking-a-stage). |
+| `npm run mock`         | Starts a mock of each Storefront service from the specs in `specs/`, for work when no stage is deployed. See [Local mocks](#local-mocks).            |
 | `npm run lint`         | Runs ESLint. `src/generated/` is excluded.                                                                                                           |
 | `npm run format:check` | Checks code formatting with Prettier. `src/generated/` is excluded.                                                                                  |
 | `npm run format`       | Rewrites files with Prettier.                                                                                                                        |
@@ -72,7 +73,7 @@ The reasons for these choices are in [decision record 0007](docs/decisions/0007-
 
 ## Checking a stage
 
-`npm run check-stage -- <stage>` (`dev` or `prod`) checks that a deployed stage is ready for tests, before you run any.
+`npm run check-stage -- <stage>` (`dev`, `prod` or `local`) checks that a stage is ready for tests, before you run any. `local` is the [local mocks](#local-mocks).
 
 ```sh
 npm run check-stage -- dev
@@ -85,7 +86,13 @@ npm run check-stage -- dev --warmup
 
 **Configuration.**
 
-- Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). It has no URLs yet, because no stage is deployed. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
+- Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). `local` has the default URLs of the mocks. `dev` and `prod` have no URLs yet, because no stage is deployed. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
 - The key for `--warmup` is read from the environment variable `APITEST_<STAGE>_TESTS_API_KEY` (for example `APITEST_DEV_TESTS_API_KEY`), set from the backend's key retrieval script or an untracked `.env` file. The script sends it only to the readiness route and never prints it.
 
 The script uses plain `fetch`. It does not need the generated clients, which arrive in Phase 2.
+
+## Local mocks
+
+`npm run mock` starts a mock of each Storefront service on `127.0.0.1` (ports 4010 to 4012), built from the specs in `specs/`. Each serves the `v0` and the `v1` paths of its service from one base URL and answers with the examples written in the spec, so it needs no AWS account and a changed spec changes the answers with no code change. `npm run check-stage -- local` checks them like a deployed stage.
+
+They have no state and no cross-service behavior, so an order never becomes `CONFIRMED`, and they do not validate request bodies. [mock/README.md](mock/README.md) lists what they check and what they do not, how to ask for an error response with `Prefer: code=409`, and why they are a small server of our own and not Prism.

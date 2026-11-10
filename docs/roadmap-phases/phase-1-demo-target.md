@@ -127,8 +127,8 @@ The source is a local checkout of the backend, cloned beside this repository (de
 
 ### 6. Local mocks
 
-- [ ] A mock server per service, driven by its `v0` and `v1` specs, so generator, facade, and configuration work does not depend on AWS being up.
-- [ ] Know the limits. A spec-driven mock returns example responses but has no state and no cross-service behavior, so an order never becomes `CONFIRMED`. Use the mocks for generator smoke tests, facade and config tests, the example consumer, and demos without AWS. Tests that need behavior (lifecycles, cleanup, idempotency, flags) run against the stub service in Phase 4, and the cross-service flows are tested in the backend project against the real stack.
+- [x] A mock server per service, driven by its `v0` and `v1` specs, so generator, facade, and configuration work does not depend on AWS being up. `npm run mock` starts all three, and `local` is a stage of `check-stage` for them. The tool is a small server of our own, not Prism (see `mock/README.md`).
+- [x] Know the limits (written in `mock/README.md`, with what the mock checks and what it does not). A spec-driven mock returns example responses but has no state and no cross-service behavior, so an order never becomes `CONFIRMED`. Use the mocks for generator smoke tests, facade and config tests, the example consumer, and demos without AWS. Tests that need behavior (lifecycles, cleanup, idempotency, flags) run against the stub service in Phase 4, and the cross-service flows are tested in the backend project against the real stack.
 
 ### 7. Map the planned spec changes to generated clients
 
@@ -152,11 +152,12 @@ The backend plans two kinds of spec change for the demo and writes its change no
 - The `v0` and `v1` specs of the three services (v0.1.0 drafts or later) are in `specs/`, copied with `npm run copy-specs` from a backend checkout on `main`, and each passes validation.
 - `docs/backend-contract.md` exists, with every gap either closed or raised in the backend project as a bug ticket.
 - The stage readiness check passes its unit tests (all services healthy, unreachable service, version mismatch per version, stage mismatch, warm-up cases). Run by hand against `prod`, and against `dev` while a dev stack is deployed, it passes, and with `--warmup` it reports the Aurora warm-up time.
+- `npm run mock` starts a mock of each service that serves the example responses of its `v0` and `v1` specs, a smoke test covers `getHealth`, `getVersion` and `listProducts` with no network beyond the loopback address, and `mock/README.md` states the tool, why, and the limits.
 - The effect table has been verified by regenerating with the planned changes.
 
 ## Risks and notes
 
-- **Dependency on the backend schedule.** The backend has no specs until its Phase 0.5 produces the drafts. The Phase 0 throwaway spec keeps early work moving, and the local mocks start from it too, because a mock needs a spec.
+- **Dependency on the backend schedule.** The backend has no specs until its Phase 0.5 produces the drafts. The Phase 0 throwaway spec kept early work moving. The mocks are built from the drafts in `specs/`.
 - **Spec and implementation drift.** The library trusts the spec. The backend runs conformance tests, and the version check flags a stage whose `specVersions` do not match the specs.
 - **Name collisions across the three services.** The `Problem` schema and the `operations` tag appear in every service, and the same operationIds appear in the three `v0` specs. Each spec is generated into its own folder, and Phase 2 settles the naming strategy early (decision record 0011).
 - **Keys are shared secrets.** Keep them scoped, never print or commit them, keep `prod` keys out of CI except the `tests` key for the scheduled smoke job in the backend project, and never load the `services` key. The flag token is a secret too.
