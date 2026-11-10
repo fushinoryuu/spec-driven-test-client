@@ -1,0 +1,78 @@
+# Fixture: version 1 of a small versioned service. See widgets-service-v0.yaml.
+openapi: 3.0.3
+info:
+  title: Widgets service
+  version: 0.2.0
+security:
+  - apiKey: []
+tags:
+  - name: widgets
+paths:
+  /v1/widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      summary: Get one widget
+      tags:
+        - widgets
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The widget.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              example:
+                id: w-1
+                name: Sprocket
+        '404':
+          description: There is no widget with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: https://widgets.example/problems/not-found
+                title: Not found
+                status: 404
+                correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f10
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - correlationId
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        correlationId:
+          type: string

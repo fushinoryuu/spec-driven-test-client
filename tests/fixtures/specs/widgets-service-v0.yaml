@@ -1,0 +1,136 @@
+# Fixture: the operational spec of a small versioned service, for the tests of the pipeline and
+# the stage readiness check. It follows the Storefront conventions (record 0013) and is not a
+# Storefront spec.
+openapi: 3.0.3
+info:
+  title: Widgets service operations
+  version: 0.1.0
+security:
+  - apiKey: []
+tags:
+  - name: operations
+paths:
+  /v0/health:
+    get:
+      operationId: getHealth
+      summary: Check that the service is running
+      tags:
+        - operations
+      security: []
+      responses:
+        '200':
+          description: The service is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+              example:
+                status: ok
+  /v0/health/ready:
+    get:
+      operationId: getReadiness
+      summary: Check that the service can reach its database
+      tags:
+        - operations
+      responses:
+        '200':
+          description: The service reached the database.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+              example:
+                status: ok
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v0/version:
+    get:
+      operationId: getVersion
+      summary: Report the build and the spec versions served
+      tags:
+        - operations
+      security: []
+      responses:
+        '200':
+          description: The build and the spec versions served.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - buildId
+                  - stage
+                  - specVersions
+                properties:
+                  buildId:
+                    type: string
+                  stage:
+                    type: string
+                  specVersions:
+                    type: object
+                    additionalProperties:
+                      type: string
+              example:
+                buildId: 7768f92
+                stage: dev
+                specVersions:
+                  v0: 0.1.0
+                  v1: 0.2.0
+                  v2: 0.1.0
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - correlationId
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        correlationId:
+          type: string
+  responses:
+    ServiceUnavailable:
+      description: The service cannot answer yet. Try again after the time in `Retry-After`.
+      headers:
+        Retry-After:
+          description: The seconds to wait before trying again.
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://widgets.example/problems/service-unavailable
+            title: Service unavailable
+            status: 503
+            correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f15
