@@ -74,7 +74,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [x] `npm run copy-specs` copies the specs from the sibling service checkouts into `specs/`
 - [x] Specs copied in (v0.1.0 drafts first), validated, and reviewed as generator input (including name collisions across services)
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
-- [ ] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up
+- [x] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up (the script is built and tested; its first live run waits for a deployed stage)
 - [ ] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
 - [ ] Backend's planned v1.1.0 (non-breaking) changes and its `v2` specs (added beside `v1`) mapped to their effect on generated clients
 
