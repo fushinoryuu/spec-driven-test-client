@@ -8,22 +8,26 @@ The generated code gives you one API class per spec tag. This phase wraps it so 
 - No hand-written code per endpoint. Adding an operation to a spec adds it to the facade automatically.
 - Environment, auth, and safety handled in one place, not in every test.
 - A call shape that suits tests: one request object in, `{ status, headers, data }` out, and no throw on HTTP error statuses (decision record 0010).
+- The package can be built and published as `0.x` versions, so a project outside this repository can install it and the release path is proven early. The version is bumped by hand until Phase 5 automates it.
 
 ## Deliverables
 
-| Deliverable                                      | Location                                                                                                 |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Facade and service registry                      | `src/client/facade.ts`, `src/client/services.ts`                                                         |
-| Environment config                               | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
-| Auth providers                                   | `src/client/auth.ts`                                                                                     |
-| Fetch wrapper (middleware)                       | `src/client/transport.ts`                                                                                |
-| Call normalization and response type             | `src/client/response.ts`                                                                                 |
-| Protected-environment guard                      | `src/client/safety.ts`                                                                                   |
-| Feature flag providers and helpers               | `src/client/flags.ts`                                                                                    |
-| Public exports                                   | `src/index.ts`                                                                                           |
-| Unit tests                                       | `tests/unit/client/`                                                                                     |
-| API reference doc (including versioned services) | `docs/client-api.md`                                                                                     |
-| Feature flag guide                               | `docs/feature-flags.md`                                                                                  |
+| Deliverable                                                     | Location                                                                                                 |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Facade and service registry                                     | `src/client/facade.ts`, `src/client/services.ts`                                                         |
+| Environment config                                              | `src/client/config.ts`, `config/environments.ts` (created in Phase 1 with base URLs only, extended here) |
+| Auth providers                                                  | `src/client/auth.ts`                                                                                     |
+| Fetch wrapper (middleware)                                      | `src/client/transport.ts`                                                                                |
+| Call normalization and response type                            | `src/client/response.ts`                                                                                 |
+| Protected-environment guard                                     | `src/client/safety.ts`                                                                                   |
+| Feature flag providers and helpers                              | `src/client/flags.ts`                                                                                    |
+| Public exports                                                  | `src/index.ts`                                                                                           |
+| Build and packaging config                                      | `package.json` exports, build config                                                                     |
+| Release workflow                                                | `.github/workflows/release.yml`                                                                          |
+| Publishing guide (name, registry, `0.x` release steps, dry run) | `docs/publishing.md`                                                                                     |
+| Unit tests                                                      | `tests/unit/client/`                                                                                     |
+| API reference doc (including versioned services)                | `docs/client-api.md`                                                                                     |
+| Feature flag guide                                              | `docs/feature-flags.md`                                                                                  |
 
 ## Public API shape
 
@@ -227,6 +231,19 @@ Integration tests that can point at any environment need a seatbelt.
 - [ ] Startup message states which environment is targeted and whether it is protected.
 - [ ] Unit tests prove a write to a protected environment is blocked before any network call.
 
+### Build and publish (`0.x` releases)
+
+The package is published from this phase, as `0.x` versions, so publishing is exercised long before v1.0.0 and the backend project can adopt the package as soon as the services it tests are deployed. Phase 5 adds the spec-diff version rules, the changelog and the example consumer on top of this.
+
+- [ ] Build to a `dist/` folder with type declarations, including the generated clients. Choose a build tool you can explain (plain `tsc` or a bundler such as tsup). `package.json` `exports` for the main entry. The `./testing` subpath and the `vitest` peer dependency arrive with the helpers in Phase 4.
+- [ ] Confirm the registry in decision record 0006 (public npm or GitHub Packages), checking name availability, install friction, provenance support and cost at that time, and set the record's status to Accepted. Remove `"private": true` only in the pull request that does the first publish.
+- [ ] Release workflow (`release.yml`): started by hand or by a tag, it builds, runs lint, format check, typecheck, the unit tests and `generate:check`, then publishes with provenance if the registry supports it. Registry credentials are repository secrets, never in files.
+- [ ] Versions are `0.x.y`, set by hand in `package.json` and tagged. While the version is `0.x`, a breaking change may come in a minor version. Write the GitHub release notes by hand until Phase 5 generates them from the changelog.
+- [ ] Dry run first: `npm pack` and inspect the tarball before the first real publish. It must hold built output and type declarations, with no secrets, `.env` files, `TODO.md`, test output, scratch folders or generator inputs. Published versions cannot be fully taken back.
+- [ ] A check that the packed tarball works from outside the repository: install it into an empty project and typecheck one call such as `apitest.ordersService.v0.operations.getVersion()`.
+- [ ] `docs/publishing.md`: the package name, the registry, how to cut a `0.x` release, how to run the dry run, and how a project installs a version.
+- [ ] Hand-off: after the first publish, tell the backend project the package name, how to install it and which version to use. Until it adopts the package, its suites keep calling the API with plain `fetch`.
+
 ## Tasks
 
 - [ ] Document the call shape (decision record 0010) in `docs/client-api.md`.
@@ -236,9 +253,10 @@ Integration tests that can point at any environment need a seatbelt.
 - [ ] Stretch: implement automatic bearer token acquisition and refresh (see the stretch section above).
 - [ ] Implement the transport wrapper with correlation id, logging, timeout, optional retry, and the guard.
 - [ ] Implement the facade with mapped types and call normalization, and a typed `createClient` for custom setups.
-- [ ] Add the version segment (every Storefront service is versioned) and the per-version spec version check, and write decision record 0013 with the Phase 2 naming rules.
+- [ ] Add the version segment (every Storefront service is versioned) and the per-version spec version check. Decision record 0013 is written in Phase 2.
 - [ ] Implement the feature flag providers (static map, environment variable, LaunchDarkly, custom function) and helpers, and write decision record 0014.
 - [ ] Export a ready-to-use default client for the common case.
+- [ ] Build the package, confirm the registry, add the release workflow and publish the first `0.x` version (see Build and publish above).
 - [ ] Write unit tests using a fake `fetch`, covering: environment selection order, unknown environment errors, each auth provider, token caching, redaction, retry rules, the guard, call normalization (HTTP error statuses do not throw), thrown transport errors, the facade's lazy construction, versioned services, and the flag providers (known and unknown flags, one lookup per flag per run, the LaunchDarkly provider against a fake `fetch` including rules it does not support, and the token never appearing in output).
 - [ ] Add a type-level test (for example with `expectTypeOf` in vitest) confirming that `apitest.ordersService.v1.orders.createOrder` accepts the generated request type and returns the response object, with `data` typed from the generated models and narrowed by `ok`.
 
@@ -251,8 +269,12 @@ Integration tests that can point at any environment need a seatbelt.
 - A test that requires a feature flag is skipped, with a reason, when the flag is off, and the unknown-flag and skip-reporting cases are covered by unit tests.
 - A write against a protected environment is blocked by default and covered by a unit test.
 - Unit tests for config, auth, transport, and the guard pass in CI without network access.
+- A `0.x` version is published by the release workflow. The dry run showed only built output and declarations, and an empty project that installs the package typechecks a call such as `apitest.ordersService.v0.operations.getVersion()`.
 
 ## Risks and notes
+
+- **Publishing something private, or something broken.** A published version is public and cannot be fully taken back. Use the dry run, and prefer a registry-side check from an empty project before telling anyone to adopt a version.
+- **Hand-set versions drift.** Until Phase 5 automates the bump, the tag, `package.json` and the release notes can disagree. The release workflow should fail when the tag and `package.json` differ.
 
 - **Type gymnastics.** Mapped types over generated modules can get complicated. Keep them small, tested with `expectTypeOf`, and fall back to a one-line-per-group registry if inference becomes brittle.
 - **Hiding too much.** A facade that swallows status codes or headers makes negative tests painful. The response object always carries the status and headers, so negative tests never need a separate raw call.

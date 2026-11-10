@@ -1,20 +1,23 @@
 # 0006: Publish target
 
-- Status: Provisional, leaning to public npm. Confirmed in Phase 5.
+- Status: Provisional, leaning to public npm. Confirmed in Phase 3, before the first `0.x` publish.
 - Date: 2026-10-30
+- Updated: 2026-11-09 (publishing moved from Phase 5 to Phase 3)
 
 ## Context
 
-The library is meant to be installed by test projects, so it needs a registry. Nothing in Phases 0 to 4 depends on the choice: until the first publish, `package.json` stays `"private": true` and consumers use the repo directly. The choice affects the package name, who can install it, and how the release workflow authenticates, so it is written down now and confirmed when the release pipeline is built.
+The library is meant to be installed by test projects, so it needs a registry. Nothing in Phases 0 to 2 depends on the choice: until the first publish, `package.json` stays `"private": true` and consumers use the repo directly. The choice affects the package name, who can install it, and how the release workflow authenticates, so it is written down now and confirmed when the release pipeline is built.
+
+The first publish moved from Phase 5 to Phase 3. Publishing is then exercised early, with `0.x` versions bumped by hand, and the backend project can start using the package before the library reaches v1.0.0. Phase 5 still owns the version rules driven by the spec diff, the changelog and v1.0.0.
 
 ## Options considered
 
 1. **Public npm.** Anyone can install it with no setup, and it supports provenance statements for builds from CI. The package name must be free on npm, and everything published is public and cannot be fully taken back.
-2. **GitHub Packages (npm registry).** Lower stakes for a demo, and it publishes with the repository's own token. Packages live under the owner's scope, so the package name would need a scope (such as the GitHub account name), and consumers need registry configuration and a token to install. Check the current rules for these points in Phase 5.
+2. **GitHub Packages (npm registry).** Lower stakes for a demo, and it publishes with the repository's own token. Packages live under the owner's scope, so the package name would need a scope (such as the GitHub account name), and consumers need registry configuration and a token to install. Check the current rules for these points in Phase 3.
 
 ## Decision
 
-**Leaning to public npm**, because it is the easier and free choice. It stays provisional until Phase 5, where the release workflow is built and the choice is confirmed here with the facts checked at that time (name availability, install friction, provenance support, cost).
+**Leaning to public npm**, because it is the easier and free choice. It stays provisional until Phase 3, where the release workflow is built and the choice is confirmed here before the first publish with the facts checked at that time (name availability, install friction, provenance support, cost).
 
 Why it leans that way:
 
@@ -32,4 +35,4 @@ Until then:
 
 - If GitHub Packages is chosen, the package name changes to a scoped name, which touches `package.json`, the README and the docs.
 - If public npm is chosen, the name must be checked for availability first, and the license (`GPL-3.0-only`) is public with the package.
-- Phase 5 updates this record's status to Accepted, confirms or reverses the leaning, and adds the facts checked at that time.
+- Phase 3 updates this record's status to Accepted, confirms or reverses the leaning, and adds the facts checked at that time.

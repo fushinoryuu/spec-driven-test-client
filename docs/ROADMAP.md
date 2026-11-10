@@ -36,7 +36,7 @@ test('express shipping is offered', async ({ api, flags }) => {
 });
 ```
 
-**What lives where.** This repository holds the library and tests of the library itself: unit tests, pipeline tests, example suites that run against a small in-process stub service, and Storefront-shaped read-only examples that run against spec-driven mocks. The tests of the Storefront services live in the backend project, like the tests of any real service, and consume the published package. The example consumer (Phase 5) is the template for that setup.
+**What lives where.** This repository holds the library and tests of the library itself: unit tests, pipeline tests, example suites that run against a small in-process stub service, and Storefront-shaped read-only examples that run against spec-driven mocks. The tests of the Storefront services live in the backend project, like the tests of any real service, and consume the published package. The package is published as `0.x` versions from Phase 3, so a project can start using it before v1.0.0 (all three services passing, Phase 5). The example consumer (Phase 5) is the template for that setup.
 
 A consuming project points the same tests at an environment with `TEST_ENV=dev` or `TEST_ENV=prod`. The backend's `dev` stage exists only while one of its pull request runs is deployed, and `prod` is flagged protected, so it is read-only (smoke tests only) unless explicitly unlocked. The services authenticate with API keys sent in the `x-api-key` header, chosen per caller type (`tests` by default, `admin` only where a test needs it). A stretch goal adds automatic bearer token acquisition and refresh, for services that use tokens instead of keys.
 
@@ -49,15 +49,15 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 ## Phases
 
-| Phase | Doc                                                                                    | Outcome                                                                                                      |
-| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 0     | [Foundations and decisions](roadmap-phases/phase-0-foundations.md)                     | Repo, tooling, decision records, generator spike                                                             |
-| 1     | [Demo target](roadmap-phases/phase-1-demo-target.md)                                   | Consume the Storefront specs (`v0` and `v1` of three services), stage manifest, API keys and the flag source |
-| 2     | [Generation pipeline](roadmap-phases/phase-2-generation-pipeline.md)                   | One command turns specs into typed clients                                                                   |
-| 3     | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md)             | `apitest.service.version.group.operation()` plus environments, auth, flags, safety                           |
-| 4     | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md)             | Fixtures, cleanup, flags, example suites against a stub service                                              |
-| 5     | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to published version, automated                                                                  |
-| 6     | [Polish](roadmap-phases/phase-6-polish.md)                                             | Docs, demo, measured results                                                                                 |
+| Phase | Doc                                                                                    | Outcome                                                                                                         |
+| ----- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 0     | [Foundations and decisions](roadmap-phases/phase-0-foundations.md)                     | Repo, tooling, decision records, generator spike                                                                |
+| 1     | [Demo target](roadmap-phases/phase-1-demo-target.md)                                   | Consume the Storefront specs (`v0` and `v1` of three services), stage manifest, API keys and the flag source    |
+| 2     | [Generation pipeline](roadmap-phases/phase-2-generation-pipeline.md)                   | One command turns specs into typed clients                                                                      |
+| 3     | [Client facade and configuration](roadmap-phases/phase-3-client-facade.md)             | `apitest.service.version.group.operation()` plus environments, auth, flags, safety, and the first `0.x` publish |
+| 4     | [Test authoring with vitest](roadmap-phases/phase-4-vitest-integration.md)             | Fixtures, cleanup, flags, example suites against a stub service                                                 |
+| 5     | [Spec-change workflow, CI, release](roadmap-phases/phase-5-spec-change-and-release.md) | Spec change to released version, automated, and the v1.0.0 milestone                                            |
+| 6     | [Polish](roadmap-phases/phase-6-polish.md)                                             | Docs, demo, measured results                                                                                    |
 
 ## Checklist
 
@@ -100,6 +100,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Stretch: automatic bearer token acquisition and refresh (OAuth2 client credentials) when no API key is configured, built and tested against a mock OAuth2 server first
 - [ ] Middleware: correlation id, redacted logging, timeouts, opt-in retries
 - [ ] Protected-environment guard
+- [ ] Build to `dist/` with type declarations, a release workflow with a tarball dry run, the registry confirmed (decision record 0006), and the first `0.x` version published, with the version bumped by hand
 - [ ] Unit tests for all of the above
 
 ### Phase 4: Test authoring with vitest
@@ -118,7 +119,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Breaking-change detection on spec changes, including an added or removed API version of a service
 - [ ] CI: lint, typecheck, unit, generate-check and the example suites. The scheduled smoke run against `prod` belongs to the backend project, with a recipe in `docs/backend-setup.md`
 - [ ] Semver rules driven by spec diff, changelog entry per release
-- [ ] Publish pipeline and an example consumer project
+- [ ] Release workflow finished (next version from the spec diff, GitHub release from the changelog entry) and an example consumer project that installs the published package. The build and the first `0.x` publish are Phase 3
 - [ ] Generator and template upgrade workflow: separate pull requests, drift check on `openapitools.json` and `templates/`, tooling entries in the changelog
 - [ ] Scripted demo: v1.0.0, v1.1.0 (non-breaking), `v2` added beside `v1` (non-breaking for the library), then `v1` retired (breaking)
 
