@@ -20,7 +20,7 @@ import { parse } from 'yaml';
 import { environments, STAGES, type Stage } from '../config/environments.ts';
 
 /** `<service>-service-v<N>.yaml`, for example `orders-service-v1.yaml` (decision record 0001). */
-const SPEC_FILE_NAME = /^([a-z0-9]+(?:-[a-z0-9]+)*-service)-(v\d+)\.yaml$/;
+export const SPEC_FILE_NAME = /^([a-z0-9]+(?:-[a-z0-9]+)*-service)-(v\d+)\.yaml$/;
 
 export const DEFAULTS = {
     /** Longest wait for the open routes, which never touch the database. */
