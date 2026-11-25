@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  pull-requests: write
 
 jobs:
   run-tests:
@@ -29,4 +31,17 @@ jobs:
 
       - run: npm run typecheck
 
-      - run: npm test
+      - run: npm test -- --coverage
+
+      - name: Comment on the PR with the coverage report
+        if: github.event_name == 'pull_request'
+        uses: fushinoryuu/gha-workflows/.github/actions/code-coverage-pr-comment@main
+        with:
+          coverage-report-path: ./coverage/coverage-summary.json
+
+      - name: Upload the coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
