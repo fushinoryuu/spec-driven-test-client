@@ -25,10 +25,9 @@ Set up the repo, write down the decisions that shape everything else, and run a 
 ├── package.json
 ├── tsconfig.json
 ├── vitest.config.ts
-├── openapitools.json          # Phase 2
+├── openapi-ts.config.mjs      # the generator options every spec shares (Phase 2)
 ├── specs.config.json          # which sibling repositories and spec files `copy-specs` copies (Phase 1)
 ├── specs/                     # input OpenAPI documents, one per service and API version
-├── templates/                 # optional generator template overrides (default is none, see Phase 2)
 ├── src/
 │   ├── generated/             # generator output, never edited by hand
 │   ├── client/                # facade, config, auth, safety (Phase 3)
