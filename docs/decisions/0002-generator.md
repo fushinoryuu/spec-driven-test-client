@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-30
 - Updated: 2026-11-09 (ALP-12). Added the findings from the six Storefront drafts and corrected the body field name.
+- Updated: 2026-11-25 (ALP-17). Pinned hey-api 0.99.0, committed the configuration, and decided enums and dates.
 
 ## Context
 
@@ -29,11 +30,12 @@ hey-api is at 0.x and its configuration has changed between minor versions. That
 ```js
 // openapi-ts.config.mjs (the spike's copy lives in spikes/generator/)
 export default {
-    input: 'specs/<service>.yaml',
-    output: { path: 'src/generated/<service>', module: { extension: '.js' } },
+    output: { module: { extension: '.js' } },
     plugins: ['@hey-api/typescript', { name: '@hey-api/sdk', operations: { strategy: 'byTags' }, paramsStructure: 'flat' }, '@hey-api/client-fetch']
 };
 ```
+
+The configuration holds only the options that every spec shares. The input and the output folder are given on each run (`npx openapi-ts -i ./specs/orders-service-v1.yaml -o <folder>`), so adding a spec needs no edit. See [the Phase 2 setup](#phase-2-setup-alp-17).
 
 | Option                | Value                         | Why                                                                                                                                                                                                  |
 | --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,20 +110,68 @@ All five candidates read the spec without warnings (OpenAPI Generator's `validat
 - **No Java anywhere.** No Java requirement goes in the README, CI needs nothing beyond Node, and Phase 0 task 4 (the Java requirement) does not apply.
 - **Facade mapping works.** `spikes/generator/probes/facade-types.ts` maps the generated classes to the call shape of [0010](0010-call-shape.md) with mapped types and typechecks, including `@ts-expect-error` cases for a missing required field, an unknown operation, a missing required header and an argument passed to an operation with no parameters. The facade passes its `client` as the second argument and sets nothing per endpoint. Operations with no parameters take the options as their only argument, so the mapped type has to tell the two cases apart.
 - **The wrapper is small.** The adapter that reshapes `{ data, error, response }` into `{ status, headers, data }` is about five lines. `response` is typed as optional on the result, so the wrapper narrows it. Error bodies are typed per status code, so `expectStatus` ([0010](0010-call-shape.md)) can narrow beyond the shared error schema later if it is useful. API Gateway's own non-JSON responses still arrive as text, and the spike confirms hey-api returns them as a string instead of throwing.
-- **Pin an exact version and upgrade deliberately.** hey-api is at 0.99 and changes its configuration between minor versions (`byTags` is not `byTag`, and `importFileExtension` is now `module.extension`). Phase 2 pins an exact version and adds a Dependabot ignore for its minor updates, so an upgrade is always a deliberate PR.
-- **Audit findings.** On 2026-10-30, `npm audit` reports a high-severity `js-yaml` denial-of-service advisory in hey-api's spec parser, and another through OpenAPI Generator's proxy-agent chain. Both are tools that only read this project's own specs, so the exposure is low, but Dependabot alerts would open for it. In the spike, `"overrides": { "js-yaml": "^4.3.2" }` clears hey-api's finding and generation still works. Phase 2 applies the same override if the alert is still open then.
+- **Pin an exact version and upgrade deliberately.** hey-api is at 0.99 and changes its configuration between minor versions (`byTags` is not `byTag`, and `importFileExtension` is now `module.extension`). The version is pinned exactly in `package.json`, and Dependabot ignores its minor updates and keeps its patch updates out of the weekly group, so an upgrade is always a deliberate pull request ([Phase 2 setup](#phase-2-setup-alp-17)).
+- **Audit findings.** On 2026-10-30, `npm audit` reported a high-severity `js-yaml` denial-of-service advisory in hey-api's spec parser, and another through OpenAPI Generator's proxy-agent chain. Both are tools that only read this project's own specs, so the exposure is low, but Dependabot alerts would open for it. On 2026-11-25 the advisory was still open, and `"overrides": { "js-yaml": "^4.3.2" }` in the root `package.json` clears it (`npm audit` reports 0 vulnerabilities) while generation still works.
 - **Templates.** hey-api has no Mustache templates. Its customization is plugins, and [0008](0008-custom-generator-templates.md) applies to them in the same way: the decision rule applies before any custom plugin, and the default is none.
-- **Phase 2 is rewritten.** [Phase 2](../roadmap-phases/phase-2-generation-pipeline.md) was written for OpenAPI Generator (`openapitools.json`, a Java jar, Mustache templates). Its tasks are rewritten around `openapi-ts.config.mjs` when the Phase 2 tickets are filed.
-- **Naming collisions across services** are still decision record 0011 (Phase 2). The spike shows the starting point: the shared `Error` schema is emitted as a type named `Error` in every service folder, so each service's generated types live in their own folder and the facade imports them by service.
+- **Phase 2 is rewritten.** [Phase 2](../roadmap-phases/phase-2-generation-pipeline.md) was written for OpenAPI Generator (`openapitools.json`, a Java jar, Mustache templates). It now describes the hey-api pipeline.
+- **Naming collisions across services** are settled in [0011](0011-naming-across-services.md): one folder per spec, named after the spec file. The shared `Error` schema of the spike is `Problem` in the Storefront specs.
 
 ## Findings from the Storefront drafts (ALP-12)
 
 The six Storefront drafts (customers `v0` and orders at 0.1.0, shipping at 0.1.1, customers `v1` at 0.2.0) were generated with the options above, each spec into its own folder. The full review is in [the backend contract](../backend-contract.md#review-of-the-drafts-as-generator-input-alp-12). What it means for this record:
 
-- **The chosen options hold.** All six generate without warnings and typecheck with `lib: ["ES2023", "DOM"]`. Without `DOM` each folder has 55 errors, so `"DOM"` still goes into `tsconfig.json` with the first committed client. The body field is named after the schema (`createCustomer`, `createOrder`), the `Idempotency-Key` header is a required field, and the errors are typed per status.
-- **Two options to decide in Phase 2, not applied here.** They change the generated types and the run-time values, so each is a decision and not a default:
+- **The chosen options hold.** All six generate without warnings and typecheck with `lib: ["ES2023", "DOM"]`. Without `DOM` each folder has errors (55 when ALP-12 counted them, two on 2026-11-25 with the Node 26 types, both for `BodyInit`, and the difference was not investigated), so `"DOM"` still goes into `tsconfig.json` with the first committed client. The body field is named after the schema (`createCustomer`, `createOrder`), the `Idempotency-Key` header is a required field, and the errors are typed per status.
+- **Two options were left to decide in Phase 2.** They change the generated types and the run-time values, so each was a decision and not a default. Both are decided in [the Phase 2 setup](#phase-2-setup-alp-17) below, and neither is used:
     - `enums: 'javascript'` on `@hey-api/typescript` adds a runtime `const` object next to the union for `CustomerStatus`, `OrderStatus`, `ShipmentStatus` and `AddressType`. Without it the enums are string unions only.
     - `@hey-api/transformers` with `dates: true`, and `transformer: true` on the SDK plugin, turns the `createdAt` and `updatedAt` strings into `Date` values. Without it they stay strings. Both were tried on `orders-service-v1.yaml` and generate cleanly.
 - **Response headers have no generated type.** `Retry-After` on the 503 and `Location` on the 201 are in the specs, but not in any generated type. The facade reads them from the response ([Phase 3](../roadmap-phases/phase-3-client-facade.md)).
-- **Names collide across specs.** `Problem` and `FieldError` appear in all six folders, `Cursor`, `Limit` and `NextCursor` in the three `v1` folders, and `Operations`, `getHealth`, `getVersion` and their types in the three `v0` folders. Every copy is identical. One folder per spec avoids every clash, and decision record 0011 (Phase 2) settles the strategy.
+- **Names collide across specs.** `Problem` and `FieldError` appear in all six folders, `Cursor`, `Limit` and `NextCursor` in the three `v1` folders, and `Operations`, `getHealth`, `getVersion` and their types in the three `v0` folders. Every copy is identical. One folder per spec avoids every clash, and [0011](0011-naming-across-services.md) settles the strategy.
 - **No template override is needed.** Nothing in the six drafts called for one, so [0008](0008-custom-generator-templates.md) is not triggered.
+
+## Phase 2 setup (ALP-17)
+
+hey-api 0.99.0 is the project's generator. This section records what was set up and decided when it was installed. It was checked on 2026-11-25, with Node 26.13.1, against the six Storefront specs in `specs/`.
+
+### Installed and pinned
+
+- `@hey-api/openapi-ts` is a dev dependency at the exact version `0.99.0`, with no range. 0.99.0 is also the latest release.
+- Dependabot ignores its minor updates (at 0.x a minor update can break the configuration), and its patch updates are kept out of the weekly dev-dependencies group, so every upgrade is its own pull request with the generated diff.
+- The package adds 44 packages to the lockfile. Only `fsevents`, which was already there and is denied in `allowScripts`, has an install script. No analytics or telemetry code is in `@hey-api/*` or in `c12`, its config loader. `open` comes in through `@hey-api/shared`, and this project never calls it.
+- `"overrides": { "js-yaml": "^4.3.2" }` is applied (see the audit finding above).
+
+### The configuration
+
+The committed `openapi-ts.config.mjs` holds only the options in the table above. The input and the output folder come with each run, because the alternatives did not work:
+
+- **A config that lists every spec** (one job per file in `specs/`) runs, but then `-i` and `-o` on the command line are applied to every job. A run for one spec generated the same spec six times into the same folder.
+- **A programmatic call from the repository root** (`createClient`) also finds `openapi-ts.config.mjs` in the working directory and merges it with what the call gives. A config that listed inputs would again turn one call into six jobs. With only shared options, one call is one job.
+- **The input must start with `./` or be absolute.** A bare `specs/x.yaml` is read as a Hey API project shorthand and fails with "Invalid Hey API shorthand format".
+
+The generate script (ALP-18) lists `specs/*.yaml`, and gives each file and its folder, `src/generated/<file name without .yaml>/` ([0011](0011-naming-across-services.md)), to one run.
+
+### Spec validation
+
+hey-api has no `validate` command. Its own parse is the validation, and the generate script should treat a run that reports a warning or an error as failed. The six Storefront specs report neither. What it catches, tried on small bad specs: malformed YAML and a `$ref` to a schema that does not exist both exit with code 1 and write nothing. **A duplicate `operationId` is not reported**, and the run exits with 0. The backend lints its specs, but the generate script should not rely on that, so ALP-18 adds a check for duplicate operation ids.
+
+### Enums: string unions, no runtime object
+
+Options: (a) leave `enums` at its default, so an enum is a string union, or (b) `enums: 'javascript'`, which adds a `const` object next to the union (`OrderStatus.PENDING`).
+
+**Decision: (a).** Why:
+
+- The union already gives what a test author needs from the type: autocomplete, and a compile error for a typo or a removed value. On the planned `v2` shipping spec, which renames `PICKED` to `PACKED`, a comparison with `'PICKED'` does not compile.
+- (b) is a second way to write the same value. The wire format is the string, and `expect(order.status).toBe('CONFIRMED')` reads like the spec. Under (b) tests would mix the string and the constant.
+- (b) adds generated code in every `types.gen.ts` that has an enum (11 more lines for `OrderStatus` alone).
+- It can be added later without breaking a test, because the union type does not change. If a test needs to loop over every value, that is the reason to revisit this.
+
+### Dates: strings, no transformer
+
+Options: (a) leave `date-time` fields as `string`, or (b) add `@hey-api/transformers` with `dates: true` and `transformer: true` on the SDK plugin, so response bodies carry `Date` values.
+
+**Decision: (a).** (b) works: it generates cleanly for all three `v1` specs and the spike spec, adds a `transformers.gen.ts` per spec, and guards optional fields. The reasons against:
+
+- **It loses the wire value.** `new Date('2026-11-02T17:48:58Z').toISOString()` is `'2026-11-02T17:48:58.000Z'`, not what the backend sent. A test can no longer assert the exact timestamp, or compare it with a value it has from somewhere else.
+- **A bad timestamp does not fail.** If the backend sends garbage, the field becomes `Invalid Date` and the test may still pass. With a string, a format assertion fails.
+- **The transformer is `any` inside.** Each generated transformer takes `data: any`, and a spec change that the transformer does not follow is not a compile error.
+- **A test that needs a `Date` can write `new Date(order.createdAt)`.** That is one call, in the place where it is needed.
+- Switching to (b) later changes the field type from `string` to `Date`, which breaks every test that reads one. Staying on (a) is the choice that is cheap to change.

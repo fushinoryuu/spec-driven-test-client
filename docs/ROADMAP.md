@@ -80,13 +80,14 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 
 ### Phase 2: Generation pipeline
 
-- [ ] `@openapitools/openapi-generator-cli` as a dev dependency, version pinned in `openapitools.json`
-- [ ] One generator entry per service, output to `src/generated/<service>/`
+- [x] `@hey-api/openapi-ts` as a dev dependency, pinned to an exact version, with one shared configuration (`openapi-ts.config.mjs`)
+- [ ] One generator run per spec, output to `src/generated/<service>-service-v<N>/` (decision record 0011)
+    - Done: the shared configuration and the folder-per-spec decision. Remaining: the generate script gives each spec its input and its folder
 - [ ] `generate` script with validate, clean, generate, format steps
 - [ ] `generate:check` that fails when committed output is stale
 - [ ] Determinism test: two runs, identical output
 - [ ] Several API versions of one service generated side by side (`<service>-service-v<N>.yaml`), proven with fixture specs (decision record 0013)
-- [ ] Custom Mustache template overrides only if the Phase 2 decision rule justifies them (default is none)
+- [ ] Custom generator plugins only if the Phase 2 decision rule justifies them (default is none, decision record 0008)
 
 ### Phase 3: Client facade and configuration
 
@@ -120,7 +121,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] CI: lint, typecheck, unit, generate-check and the example suites. The scheduled smoke run against `prod` belongs to the backend project, with a recipe in `docs/backend-setup.md`
 - [ ] Semver rules driven by spec diff, changelog entry per release
 - [ ] Release workflow finished (next version from the spec diff, GitHub release from the changelog entry) and an example consumer project that installs the published package. The build and the first `0.x` publish are Phase 3
-- [ ] Generator and template upgrade workflow: separate pull requests, drift check on `openapitools.json` and `templates/`, tooling entries in the changelog
+- [ ] Generator upgrade workflow: separate pull requests, drift check on the hey-api version and `openapi-ts.config.mjs`, tooling entries in the changelog
 - [ ] Scripted demo: v1.0.0, v1.1.0 (non-breaking), `v2` added beside `v1` (non-breaking for the library), then `v1` retired (breaking)
 
 ### Phase 6: Polish
