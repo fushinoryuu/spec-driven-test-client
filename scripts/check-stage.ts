@@ -9,8 +9,8 @@
 // have one, which needs the `tests` API key and wakes a paused database. Never run that on a
 // schedule: a database that is queried all the time does not pause.
 //
-// The script uses plain `fetch`, because the generated clients arrive in Phase 2. Node runs this
-// file directly, so keep to syntax it can strip.
+// The script uses plain `fetch`: it calls two open routes and a readiness route, so it has no use
+// for the generated clients. Node runs this file directly, so keep to syntax it can strip.
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
