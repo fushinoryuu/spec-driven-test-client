@@ -4,6 +4,7 @@
 - Date: 2026-10-30
 - Updated: 2026-11-09 (ALP-12). Added the findings from the six Storefront drafts and corrected the body field name.
 - Updated: 2026-11-25 (ALP-17). Pinned hey-api 0.99.0, committed the configuration, and decided enums and dates.
+- Updated: 2026-11-26 (ALP-18). Recorded how the generate script calls hey-api and what it does about the problems hey-api misses.
 
 ## Context
 
@@ -175,3 +176,15 @@ Options: (a) leave `date-time` fields as `string`, or (b) add `@hey-api/transfor
 - **The transformer is `any` inside.** Each generated transformer takes `data: any`, and a spec change that the transformer does not follow is not a compile error.
 - **A test that needs a `Date` can write `new Date(order.createdAt)`.** That is one call, in the place where it is needed.
 - Switching to (b) later changes the field type from `string` to `Date`, which breaks every test that reads one. Staying on (a) is the choice that is cheap to change.
+
+## The generate script (ALP-18)
+
+`scripts/generate.ts` calls hey-api's `createClient` from Node, once per spec, with only the input and the output folder. The shared options come from `openapi-ts.config.mjs`. Checked with 0.99.0 on 2026-11-26. What the script has to work around:
+
+- **The config file is passed by path** (`configFile`), so a run does not depend on the working directory. The output is byte for byte what the command line gives.
+- **Its errors arrive empty.** A failed run throws a `JobError` with an empty message. The real error is `error.originalError.error`.
+- **It writes a crash log** (`openapi-ts-error-<time>.log`) into the working directory on a failure, and asks "Open a GitHub issue with crash details?" on stdin when the run is interactive. The script sets `logs: { file: false }` and does not set `interactive`.
+- **Its warnings and errors go to `console`**, with no option to collect them. The script replaces `console` for the length of one call and fails the run on any warning or error line. A missing input file does not throw: the call returns normally and only prints the error, so the script also fails when nothing was generated.
+- **It is lenient.** `type: 5` as a schema type and `openapi: 4.0.0` generate with no complaint. The script does not add rules for these, because the backend lints its specs, and only checks what the Phase 2 plan names: a duplicate `operationId` (no report at all) and a local `$ref` that does not exist (it fails with `Cannot read properties of null (reading 'schemas')`, which does not say which `$ref`).
+- **The typecheck runs on the new code before it replaces the old.** A temporary `tsconfig.json` extends the repository's and includes only the new folders, so a generation that does not compile leaves `src/generated/` as it was.
+- **No formatter step.** The ticket asked for one, but generated code is excluded from Prettier ([0003](0003-generated-code-in-git.md)) and hey-api already writes the "auto-generated" header.

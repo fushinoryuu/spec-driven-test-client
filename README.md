@@ -24,6 +24,7 @@ npm ci
 | Command                | What it does                                                                                                                                         |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run copy-specs`   | Copies the OpenAPI specs from the sibling service checkouts into `specs/`. See [Copying specs](#copying-specs).                                      |
+| `npm run generate`     | Generates a typed client for every spec in `specs/` into `src/generated/`. See [Generating clients](#generating-clients).                            |
 | `npm run check-stage`  | Checks that a deployed stage is ready: every service is healthy and serves the spec versions in `specs/`. See [Checking a stage](#checking-a-stage). |
 | `npm run mock`         | Starts a mock of each Storefront service from the specs in `specs/`, for work when no stage is deployed. See [Local mocks](#local-mocks).            |
 | `npm run lint`         | Runs ESLint. `src/generated/` is excluded.                                                                                                           |
@@ -71,6 +72,32 @@ projects/
 
 The reasons for these choices are in [decision record 0007](docs/decisions/0007-spec-source.md).
 
+## Generating clients
+
+`npm run generate` turns every spec in `specs/` into a typed client with [hey-api `openapi-ts`](https://heyapi.dev), at the exact version in `package.json`. Each spec gets its own folder named after its file, so `specs/orders-service-v1.yaml` becomes `src/generated/orders-service-v1/`. Adding a spec is dropping its file into `specs/` and running the command. No script or configuration changes.
+
+```sh
+npm run generate
+npm run generate -- --service orders-service-v1
+```
+
+**What the command does**, in order. It stops at the first problem, and `src/generated/` is changed only if every step passes:
+
+1. **Check** every spec. It must be valid YAML and an OpenAPI document, have no duplicate `operationId` (hey-api does not report one) and have no local `$ref` that points at nothing (hey-api reports that with an unrelated message). All problems are printed together.
+2. **Generate** each spec into a work folder with the shared options in `openapi-ts.config.mjs`. Anything hey-api prints as a warning or an error fails the run.
+3. **Typecheck** the new code with the repository's `tsconfig.json`.
+4. **Swap** the new folders in. The old folder of each spec is replaced as a whole, so a deleted operation leaves no stale file. A full run also removes the folders of specs that no longer exist.
+5. **Print** the specs generated, the operations in each and the generator version.
+
+`--service <name>` generates one spec, named without `.yaml`, and leaves every other folder alone. A name that is not in `specs/` is a usage error (exit code 2). A failed run exits with 1.
+
+**Good to know.**
+
+- Generated code is committed and never edited by hand ([decision record 0003](docs/decisions/0003-generated-code-in-git.md)). It is excluded from lint and format, and included in the typecheck. A spec change shows up as a generated diff.
+- Every folder carries its own copy of the hey-api runtime (`client/`, `core/` and `client.gen.ts`, about 1,900 lines), so the six Storefront folders are about 14,000 lines. They are identical, and a test asserts it ([decision record 0011](docs/decisions/0011-naming-across-services.md)).
+- The work folder `.generate-<random>/` is created in the repository root and removed at the end. It is gitignored and is left behind only if a run is killed.
+- Upgrading hey-api is a one-line change of the pinned version, a regenerate, and a pull request with the generated diff ([decision record 0008](docs/decisions/0008-custom-generator-templates.md)).
+
 ## Checking a stage
 
 `npm run check-stage -- <stage>` (`dev`, `prod` or `local`) checks that a stage is ready for tests, before you run any. `local` is the [local mocks](#local-mocks).
@@ -89,7 +116,7 @@ npm run check-stage -- dev --warmup
 - Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). `local` has the default URLs of the mocks. `dev` and `prod` have no URLs yet, because no stage is deployed. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
 - The key for `--warmup` is read from the environment variable `APITEST_<STAGE>_TESTS_API_KEY` (for example `APITEST_DEV_TESTS_API_KEY`), set from the backend's key retrieval script or an untracked `.env` file. The script sends it only to the readiness route and never prints it.
 
-The script uses plain `fetch`. It does not need the generated clients, which arrive in Phase 2.
+The script uses plain `fetch`. It does not need the generated clients.
 
 ## Local mocks
 

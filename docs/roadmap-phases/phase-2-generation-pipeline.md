@@ -72,16 +72,16 @@ Three details found while setting this up ([0002](../decisions/0002-generator.md
 
 `npm run generate` should do these steps in order and stop at the first failure:
 
-- [ ] **List** the files in `specs/`, and give each one its input and its folder, `src/generated/<file name without .yaml>/`.
-- [ ] **Check** each spec. hey-api has no `validate` command: its parse stops on malformed YAML or a missing `$ref`, and the script fails on any warning or error it prints. It does not report a duplicate `operationId`, so the script checks for that itself.
-- [ ] **Clean** each spec's output folder first, so deleted operations disappear instead of leaving stale files.
-- [ ] **Generate** with the pinned version, and fail if hey-api exits with an error.
-- [ ] **Typecheck** the generated code so a broken generation fails here, not later in someone's test. Add `"DOM"` to `lib` in `tsconfig.json` in the same pull request as the first committed client.
-- [ ] Print a short summary: specs generated, operations per spec, generator version.
+- [x] **List** the files in `specs/`, and give each one its input and its folder, `src/generated/<file name without .yaml>/`.
+- [x] **Check** each spec. hey-api has no `validate` command: its parse stops on malformed YAML or a missing `$ref`, and the script fails on any warning or error it prints. It does not report a duplicate `operationId`, so the script checks for that itself.
+- [x] **Clean** each spec's output folder first, so deleted operations disappear instead of leaving stale files. The script replaces the folder as a whole, after everything has passed.
+- [x] **Generate** with the pinned version, and fail if hey-api exits with an error.
+- [x] **Typecheck** the generated code so a broken generation fails here, not later in someone's test. It runs before the new code replaces the old. Added `"DOM"` to `lib` in `tsconfig.json` in the same pull request as the first committed client.
+- [x] Print a short summary: specs generated, operations per spec, generator version.
 
 There is no formatter step: generated code is excluded from lint and format ([0003](../decisions/0003-generated-code-in-git.md)).
 
-Support `npm run generate -- --service orders-service-v1` for a single spec.
+`npm run generate -- --service orders-service-v1` generates a single spec.
 
 ### 4. The drift check
 
@@ -94,21 +94,21 @@ Support `npm run generate -- --service orders-service-v1` for a single spec.
 
 ### 5. Multi-service support
 
-- [ ] Generate all the Storefront specs (a `v0` and a `v1` for customers, orders and shipping) and confirm that adding a service or a version requires only dropping its spec into `specs/` and rerunning `generate`. Name spec files `<service>-service-v<N>.yaml` (for example `orders-service-v1.yaml`). The file name gives the facade name (`ordersService`) and the version segment (`v1`).
+- [x] Generate all the Storefront specs (a `v0` and a `v1` for customers, orders and shipping) and confirm that adding a service or a version requires only dropping its spec into `specs/` and rerunning `generate`. Name spec files `<service>-service-v<N>.yaml` (for example `orders-service-v1.yaml`). The file name gives the facade name (`ordersService`) and the version segment (`v1`).
 - [x] Check that the specs do not collide on model or class names. All of them share an error schema (`Problem`), every service has an `operations` tag, and the three `v0` specs have the same operationIds. Each spec is generated into its own folder, which avoids every clash and which the facade can import from. Recorded in [0011](../decisions/0011-naming-across-services.md).
 - [x] Write the API version rules in [0013](../decisions/0013-api-versions.md): a spec file `<service>-service-v<N>.yaml` is version `v<N>` of the service, generated into its own folder. `v0` is the reserved operational spec, and nothing is special-cased for it. The version comes from the file suffix, never from `info.version`. A file with no suffix is a service without versions (fixtures only). An API version is not the spec's `info.version` and not the package version.
 - [ ] Prove the rules with fixture specs under `tests/fixtures/specs/` (a small `widgets` service with `v0`, `v1` and `v2`) before the Storefront has a `v2`. Phase 3 adds the version segment to the facade.
 
 ### 6. Pipeline tests
 
-- [ ] **Determinism:** run generation twice, assert identical output.
-- [ ] **Compiles:** the generated code passes `tsc` under the repo's strict settings.
-- [ ] **Surface check:** for each Storefront spec, assert that the expected operations exist (for example `getVersion` on the three `v0` specs, plus `createCustomer`, `createOrder` and `getShipment` on the `v1` specs) by importing the generated module.
-- [ ] **Removal:** remove an operation from a copy of the spec and assert it disappears from the output.
-- [ ] **Invalid spec:** a malformed spec, a missing `$ref` and a duplicate `operationId` each fail with a useful error and do not touch existing output.
+- [x] **Determinism:** run generation twice, assert identical output.
+- [x] **Compiles:** the generated code passes `tsc` under the repo's strict settings.
+- [x] **Surface check:** for each Storefront spec, assert that the expected operations exist (for example `getVersion` on the three `v0` specs, plus `createCustomer`, `createOrder` and `getShipment` on the `v1` specs) by importing the generated module.
+- [x] **Removal:** remove an operation from a copy of the spec and assert it disappears from the output.
+- [x] **Invalid spec:** a malformed spec, a missing `$ref` and a duplicate `operationId` each fail with a useful error and do not touch existing output.
 - [ ] **API versions:** generate the two versioned fixture specs side by side, assert that each version lands in its own folder with no name collisions, that an operation present only in `v2` is absent from `v1`, and that `generate:check` covers both.
-- [ ] **Runtime copies:** assert that `client/` and `core/` are identical in every folder (0011). This is optional: the drift check already covers them.
-- [ ] Keep these fast by using tiny specs under `tests/fixtures/specs/`.
+- [x] **Runtime copies:** assert that `client/` and `core/` are identical in every folder (0011). This was optional.
+- [x] Keep these fast by using tiny specs under `tests/fixtures/specs/`.
 
 ### 7. Custom plugins (optional, default is none)
 

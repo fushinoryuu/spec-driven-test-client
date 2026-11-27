@@ -81,11 +81,10 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 ### Phase 2: Generation pipeline
 
 - [x] `@hey-api/openapi-ts` as a dev dependency, pinned to an exact version, with one shared configuration (`openapi-ts.config.mjs`)
-- [ ] One generator run per spec, output to `src/generated/<service>-service-v<N>/` (decision record 0011)
-    - Done: the shared configuration and the folder-per-spec decision. Remaining: the generate script gives each spec its input and its folder
-- [ ] `generate` script with validate, clean, generate, format steps
+- [x] One generator run per spec, output to `src/generated/<service>-service-v<N>/` (decision record 0011)
+- [x] `generate` script with check, generate, typecheck and swap steps (`npm run generate`)
 - [ ] `generate:check` that fails when committed output is stale
-- [ ] Determinism test: two runs, identical output
+- [x] Determinism test: two runs, identical output
 - [ ] Several API versions of one service generated side by side (`<service>-service-v<N>.yaml`), proven with fixture specs (decision record 0013)
 - [ ] Custom generator plugins only if the Phase 2 decision rule justifies them (default is none, decision record 0008)
 
