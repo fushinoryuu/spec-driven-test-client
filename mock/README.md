@@ -8,9 +8,9 @@ npm run mock
 
 ```text
 Mocks of the specs in <repo>/specs (example responses, no state):
-  customers-service  http://127.0.0.1:4010   v0 0.1.0, v1 0.2.0
-  orders-service     http://127.0.0.1:4011   v0 0.1.0, v1 0.1.0
-  shipping-service   http://127.0.0.1:4012   v0 0.1.1, v1 0.1.1
+  customers-service  http://127.0.0.1:4010   v0 0.2.0, v1 0.3.0
+  orders-service     http://127.0.0.1:4011   v0 0.2.0, v1 0.3.0
+  shipping-service   http://127.0.0.1:4012   v0 0.2.0, v1 0.2.0
 Press Ctrl+C to stop.
 ```
 
@@ -41,7 +41,7 @@ The mocks return example responses. They have no state and no cross-service beha
 - A created, changed or deleted resource does not show up in the next read. Lists always return the same page, and `nextCursor` is whatever the example says.
 - Idempotency is not simulated. The same `Idempotency-Key` with a different body does not answer `409`.
 - Feature flags, database pauses and the simulation routes do not exist. `getReadiness` answers `200` straight away.
-- The mock never answers `409`, `422`, `429`, `502`, `503` or `504` by itself, because those come from behavior it does not have. Ask for one with `Prefer`.
+- The mock never answers `409`, `422`, `429`, `500`, `502`, `503` or `504` by itself, because those come from behavior it does not have. Ask for one with `Prefer`.
 
 Behavior like this is tested against the stub service in Phase 4. The Storefront's real behavior is tested in the backend project against the real stack.
 

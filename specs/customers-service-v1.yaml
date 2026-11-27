@@ -3,7 +3,7 @@
 openapi: 3.0.3
 info:
   title: Customers service
-  version: 0.2.0
+  version: 0.3.0
   license:
     name: GPL-3.0-only
     url: https://www.gnu.org/licenses/gpl-3.0.html
@@ -82,6 +82,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     get:
@@ -140,6 +142,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}:
@@ -176,6 +180,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     patch:
@@ -236,6 +242,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     delete:
@@ -262,6 +270,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}/addresses:
@@ -327,6 +337,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     get:
@@ -378,6 +390,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
   /v1/customers/{customerId}/addresses/{addressId}:
@@ -439,6 +453,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     delete:
@@ -463,6 +479,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 components:
@@ -896,6 +914,20 @@ components:
             status: 429
             detail: The rate limit for this API key was reached.
             correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f14
+    InternalError:
+      description: >-
+        Something went wrong in the service that the caller could not have
+        avoided. The response has no `detail`, so that it does not show how the
+        service works inside. Quote the `correlationId` when reporting it.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://storefront.example/problems/internal-error
+            title: Internal server error
+            status: 500
+            correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f16
     ServiceUnavailable:
       description: >-
         The service cannot answer yet. Try again after the time in

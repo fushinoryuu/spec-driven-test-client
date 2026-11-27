@@ -3,7 +3,7 @@
 openapi: 3.0.3
 info:
   title: Customers service operations
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: GPL-3.0-only
     url: https://www.gnu.org/licenses/gpl-3.0.html
@@ -46,6 +46,8 @@ paths:
                       - ok
               example:
                 status: ok
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
   /v0/health/ready:
@@ -86,6 +88,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
   /v0/version:
@@ -133,6 +137,8 @@ paths:
                 specVersions:
                   v0: 0.1.0
                   v1: 0.1.0
+        '500':
+          $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 components:
@@ -209,6 +215,20 @@ components:
           items:
             $ref: '#/components/schemas/FieldError'
   responses:
+    InternalError:
+      description: >-
+        Something went wrong in the service that the caller could not have
+        avoided. The response has no `detail`, so that it does not show how the
+        service works inside. Quote the `correlationId` when reporting it.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://storefront.example/problems/internal-error
+            title: Internal server error
+            status: 500
+            correlationId: 6f0d6b1c-0c46-4d4c-b0b5-0c8d1f3f8f16
     ServiceUnavailable:
       description: >-
         The service cannot answer yet. Try again after the time in
