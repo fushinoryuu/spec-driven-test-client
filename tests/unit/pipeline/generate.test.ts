@@ -288,7 +288,7 @@ describe('generate', () => {
         await mkdir(noDom);
         await writeFile(path.join(noDom, 'tsconfig.json'), JSON.stringify({ extends: path.join(ROOT, 'tsconfig.json'), compilerOptions: { lib: ['ES2023'] } }));
         await cp(path.join(ROOT, 'openapi-ts.config.mjs'), path.join(noDom, 'openapi-ts.config.mjs'));
-        await symlink(path.join(ROOT, 'node_modules'), path.join(noDom, 'node_modules'), 'dir');
+        await symlink(path.join(ROOT, 'node_modules'), path.join(noDom, 'node_modules'), 'junction');
 
         const error = await failure(generate({ root: noDom, specsDir, outDir }));
         expect(error).toBeInstanceOf(GenerateError);
