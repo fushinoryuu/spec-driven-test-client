@@ -64,7 +64,7 @@ A reviewer's findings are posted as a Jira comment on the ticket. The fixes go o
 ## Rules that are easy to break
 
 - **Specs are copied, never edited.** The files in `specs/` come from the backend through `npm run copy-specs`. Do not edit one by hand. Names are `<service>-service-v<N>.yaml`: `v0` is the operational spec and `v1` is the business API.
-- **Generated code is committed and never edited by hand** (decision record 0003). It lives in `src/generated/`, is excluded from lint and format, and is included in the typecheck. A spec change shows up as a generated diff, reviewed in its own pull request.
+- **Generated code is committed and never edited by hand** (decision record 0003). It lives in `src/generated/` (one folder per spec, written by `npm run generate`), is excluded from lint and format, and is included in the typecheck. A spec change shows up as a generated diff, reviewed in its own pull request.
 - **Node runs the `.ts` files directly** (Node 26, type stripping). So no enums or parameter properties, and relative imports end in `.ts`. The module system is ESM with NodeNext. The Node version is in `.nvmrc`.
 - **TypeScript stays on `~6.0.3`** until typescript-eslint supports 7. Dependabot ignores the major bump. `@types/node` follows the Node pin.
 - **The `minimatch` override** in the root `package.json` stays until the packages that need it release fixes. Drop it then, and run `npm audit`.
