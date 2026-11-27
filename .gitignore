@@ -68,6 +68,9 @@ web_modules/
 # Work folder of scripts/copy-specs.ts, left behind only if a run is killed
 .copy-specs-*/
 
+# Work folders of scripts/generate.ts, left behind only if a run is killed
+.generate-*/
+
 # dotenv environment variable files
 .env
 .env.*
