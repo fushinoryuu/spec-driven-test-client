@@ -94,7 +94,7 @@ npm run generate -- --service orders-service-v1
 **Good to know.**
 
 - Generated code is committed and never edited by hand ([decision record 0003](docs/decisions/0003-generated-code-in-git.md)). It is excluded from lint and format, and included in the typecheck. A spec change shows up as a generated diff.
-- Every folder carries its own copy of the hey-api runtime (`client/`, `core/` and `client.gen.ts`, about 1,900 lines), so the six Storefront folders are about 14,000 lines. They are identical, and a test asserts it ([decision record 0011](docs/decisions/0011-naming-across-services.md)).
+- Every folder carries its own copy of the hey-api runtime (`client/` and `core/`, about 1,700 non-blank lines), so the six Storefront folders are about 12,400 non-blank lines. They are identical, and a test asserts it ([decision record 0011](docs/decisions/0011-naming-across-services.md)).
 - The work folder `.generate-<random>/` is created in the repository root and removed at the end. It is gitignored and is left behind only if a run is killed.
 - Upgrading hey-api is a one-line change of the pinned version, a regenerate, and a pull request with the generated diff ([decision record 0008](docs/decisions/0008-custom-generator-templates.md)).
 

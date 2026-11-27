@@ -152,7 +152,7 @@ The generate script (ALP-18) lists `specs/*.yaml`, and gives each file and its f
 
 ### Spec validation
 
-hey-api has no `validate` command. Its own parse is the validation, and the generate script should treat a run that reports a warning or an error as failed. The six Storefront specs report neither. What it catches, tried on small bad specs: malformed YAML and a `$ref` to a schema that does not exist both exit with code 1 and write nothing. **A duplicate `operationId` is not reported**, and the run exits with 0. The backend lints its specs, but the generate script should not rely on that, so ALP-18 adds a check for duplicate operation ids.
+hey-api has no `validate` command. Its own parse is the validation, and the generate script should treat a run that reports a warning or an error as failed. The six Storefront specs report neither. What it catches, tried on small bad specs: malformed YAML and a `$ref` to a schema that does not exist both exit with code 1 and write nothing. **A duplicate `operationId` is not reported**, and the run exits with 0. The backend lints its specs, but the generate script should not rely on that, so the generate script checks for duplicate operation ids (see [the generate script](#the-generate-script-alp-18)).
 
 ### Enums: string unions, no runtime object
 

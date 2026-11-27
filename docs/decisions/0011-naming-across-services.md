@@ -25,7 +25,7 @@ Every copy is identical, so nothing is in conflict in meaning. The names still c
 
 ### The repeated runtime
 
-Each folder holds its own copy of the HTTP runtime: 1,694 non-blank lines in `client/` and `core/`, out of 1,845 to 2,511 lines per folder and 12,275 for the six specs. The six copies are byte-identical (checked with `diff -r`).
+Each folder holds its own copy of the HTTP runtime: 1,694 non-blank lines in `client/` and `core/`, out of 1,854 to 2,554 non-blank lines per folder and 12,386 for the six specs (counted again after ALP-22 added the 500 responses). The six copies are byte-identical (checked with `diff -r`).
 
 The generator can import the runtime from an npm package instead (`bundle: false` on the client plugin), and that was tried. It imports from `@hey-api/client-fetch`, which the registry marks deprecated since its version 0.73 ("this package is bundled directly inside `@hey-api/openapi-ts`"). A package that is no longer maintained would become a runtime dependency of the library and of every consumer, so it is rejected.
 
@@ -36,4 +36,4 @@ The generator can import the runtime from an npm package instead (`bundle: false
 - **The facade can still import from the result.** All six folders typecheck under the repo's strict `NodeNext` settings with `lib: ["ES2023", "DOM"]`. A probe, written for this record and not committed, maps every exported class of a module (one class per tag: `Orders`, `Products`, `Operations`) to a group named by lower-casing its first letter, and nests the groups under the service and the version. It gives `apitest.ordersService.v1.orders.getOrder({ orderId })` and `apitest.ordersService.v0.operations.getVersion()` with full types, and these are compile errors, as they should be: `apitest.ordersService.v2` (no such version), `getOrder({})` (missing `orderId`), `apitest.ordersService.v0.operations.getOrder`, and an operation of another service.
 - **The classes have no `Api` suffix.** The Phase 3 plan still says the facade takes the module keys that end in `Api`, which came from OpenAPI Generator. With hey-api the facade takes the exported classes. Phase 3 is corrected when its tickets are filed.
 - **Types are shared by shape, not by name.** `Problem` in `orders-service-v1` and in `customers-service-v1` are separate types that are structurally identical, so one helper accepts either.
-- **Without `"DOM"` in `lib`** each folder has two errors (`BodyInit` in `client/client.gen.ts`), 12 in all. `tsconfig.json` still gets `"DOM"` with the first committed client (ALP-18).
+- **Without `"DOM"` in `lib`** each folder has two errors (`BodyInit` in `client/client.gen.ts`), 12 in all. `tsconfig.json` got `"DOM"` with the first committed client (ALP-18).

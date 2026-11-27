@@ -76,7 +76,7 @@ Check each of these in the generated output, and note anything the generator han
 - [x] Nullable and optional fields, `date-time` values, arrays, and nested objects (order line items).
 - [x] Cursor pagination parameters.
 - [x] A required header parameter (`Idempotency-Key` on `createOrder`) and how it appears in the generated request type.
-- [x] The shared `Problem` schema on 4xx and 503 responses, and the `Retry-After` header on the 503.
+- [x] The shared `Problem` schema on 4xx, 500 and 503 responses, and the `Retry-After` header on the 503.
 - [x] The `apiKey` security scheme, and how the generated runtime lets you supply the key.
 - [x] The `operations` tag and the `Problem` schema appearing in every service, and the same operationIds (`getHealth`, `getVersion`) in the three `v0` specs. These collide unless each spec is generated into its own folder (Phase 2).
 - [x] Flag-gated responses documented in the spec (such as the 404 `Problem` on `advanceShipment`), and the `specVersions` object on the version response.
