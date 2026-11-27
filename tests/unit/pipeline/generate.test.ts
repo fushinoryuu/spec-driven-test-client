@@ -34,6 +34,21 @@ async function addSpec(name: string, text: string): Promise<void> {
     await writeFile(path.join(specsDir, name), text);
 }
 
+/** A stand-in for the library's root, with its own `tsconfig.json`, config, `node_modules` and `specs/`. `compilerOptions` change what the typecheck accepts. */
+async function makeRoot(name: string, compilerOptions: object = {}): Promise<string> {
+    const root = path.join(work, name);
+    await mkdir(path.join(root, 'specs'), { recursive: true });
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ extends: path.join(ROOT, 'tsconfig.json'), compilerOptions }));
+    await cp(path.join(ROOT, 'openapi-ts.config.mjs'), path.join(root, 'openapi-ts.config.mjs'));
+    await symlink(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'), 'junction');
+    return root;
+}
+
+/** The work folders of a run that were not removed. The folders of the tests themselves are not counted. */
+async function leftoverWorkFolders(): Promise<string[]> {
+    return (await readdir(ROOT)).filter((entry) => entry.startsWith('.generate-') && !entry.startsWith('.generate-test-'));
+}
+
 /** Every file under a folder, keyed by its relative path. */
 async function readTree(folder: string): Promise<Map<string, string>> {
     const tree = new Map<string, string>();
@@ -256,7 +271,6 @@ describe('generate', () => {
         });
 
         it('leaves no work folder behind, after a pass or a failure', async () => {
-            const leftovers = async () => (await readdir(ROOT)).filter((entry) => entry.startsWith('.generate-') && !entry.startsWith('.generate-test-'));
             await addFixture('widgets-service-v1.yaml');
             await run();
             await addSpec('dup-service-v1.yaml', specWith('a').replace('paths:\n', 'paths:\n  /v1/b:\n    get:\n      operationId: a\n      responses:\n        "200":\n          description: x\n'));
@@ -264,8 +278,25 @@ describe('generate', () => {
             await rm(path.join(specsDir, 'dup-service-v1.yaml'));
             await addSpec('old-service-v1.yaml', "openapi: 2.0\ninfo: {title: t, version: '1'}\npaths: {}\n");
             await failure(run());
-            expect(await leftovers()).toEqual([]);
+            expect(await leftoverWorkFolders()).toEqual([]);
         });
+    });
+
+    it('puts the old folders back when a move fails part way', async () => {
+        await addSpec('a-service-v1.yaml', specWith('getA'));
+        await addSpec('b-service-v1.yaml', specWith('getB'));
+        // The old `a` is moved aside and the new `a` moved in. Then the new `b` cannot replace a file, so the swap fails and must undo the first move.
+        await mkdir(path.join(outDir, 'a-service-v1'), { recursive: true });
+        await writeFile(path.join(outDir, 'a-service-v1', 'old.ts'), '// old a\n');
+        await writeFile(path.join(outDir, 'b-service-v1'), 'not a folder\n');
+
+        await expect(run()).rejects.toThrow();
+
+        expect(await readdir(path.join(outDir, 'a-service-v1'))).toEqual(['old.ts']);
+        expect(await readFile(path.join(outDir, 'a-service-v1', 'old.ts'), 'utf8')).toBe('// old a\n');
+        expect(await readFile(path.join(outDir, 'b-service-v1'), 'utf8')).toBe('not a folder\n');
+        expect((await readdir(outDir)).sort()).toEqual(['a-service-v1', 'b-service-v1']);
+        expect(await leftoverWorkFolders()).toEqual([]);
     });
 
     it('fails when there is nothing to generate', async () => {
@@ -284,11 +315,7 @@ describe('generate', () => {
     it('refuses code that does not compile, with the file and the error', async () => {
         await addFixture('widgets-service-v1.yaml');
         // Without DOM the generated client has no `BodyInit`, so a tsconfig that drops it must fail the typecheck.
-        const noDom = path.join(work, 'root');
-        await mkdir(noDom);
-        await writeFile(path.join(noDom, 'tsconfig.json'), JSON.stringify({ extends: path.join(ROOT, 'tsconfig.json'), compilerOptions: { lib: ['ES2023'] } }));
-        await cp(path.join(ROOT, 'openapi-ts.config.mjs'), path.join(noDom, 'openapi-ts.config.mjs'));
-        await symlink(path.join(ROOT, 'node_modules'), path.join(noDom, 'node_modules'), 'junction');
+        const noDom = await makeRoot('root', { lib: ['ES2023'] });
 
         const error = await failure(generate({ root: noDom, specsDir, outDir }));
         expect(error).toBeInstanceOf(GenerateError);
@@ -353,6 +380,50 @@ describe('formatSummary and runCli', () => {
         });
         afterEach(() => {
             vi.restoreAllMocks();
+        });
+
+        /** A library root with the given Storefront-style fixtures in its own `specs/`. */
+        async function rootWith(name: string, ...fixtures: string[]): Promise<string> {
+            const root = await makeRoot(name);
+            for (const fixture of fixtures) {
+                await cp(path.join(FIXTURES, fixture), path.join(root, 'specs', fixture));
+            }
+            return root;
+        }
+
+        it('returns 0 and prints the summary after a run', async () => {
+            const root = await rootWith('cli-pass', 'widgets-service-v1.yaml');
+
+            expect(await runCli({ root, argv: [], typecheck: skipTypecheck })).toBe(0);
+
+            expect(error).not.toHaveBeenCalled();
+            expect(log).toHaveBeenCalledTimes(1);
+            const text = String(log.mock.calls[0][0]);
+            expect(text).toMatch(/^Generated 1 spec with @hey-api\/openapi-ts \d+\.\d+\.\d+\.\n/);
+            expect(text).toMatch(/widgets-service-v1\s+1 operation\s+src\/generated\/widgets-service-v1\/$/);
+            expect((await readTree(path.join(root, 'src', 'generated', 'widgets-service-v1'))).get('sdk.gen.ts')).toContain('getWidget');
+        });
+
+        it('returns 1 and prints the problem when a spec is bad, and writes no output', async () => {
+            const root = await rootWith('cli-fail', 'widgets-service-v1.yaml');
+            await writeFile(path.join(root, 'specs', 'twice-service-v1.yaml'), specWith('getThing').replace('paths:\n', 'paths:\n  /v1/again:\n    get:\n      operationId: getThing\n      responses:\n        "200":\n          description: Done.\n'));
+
+            expect(await runCli({ root, argv: [], typecheck: skipTypecheck })).toBe(1);
+
+            expect(log).not.toHaveBeenCalled();
+            const text = String(error.mock.calls[0][0]);
+            expect(text).toContain('generate failed. src/generated/ was not changed.');
+            expect(text).toContain('operationId "getThing" is used by');
+            await expect(readdir(path.join(root, 'src', 'generated'))).rejects.toThrow();
+        });
+
+        it('returns 1 when the generated code does not compile', async () => {
+            const root = await rootWith('cli-types', 'widgets-service-v1.yaml');
+
+            expect(await runCli({ root, argv: [], typecheck: () => Promise.reject(new GenerateError(['The generated code does not compile: nope'])) })).toBe(1);
+
+            expect(String(error.mock.calls[0][0])).toContain('The generated code does not compile: nope');
+            await expect(readdir(path.join(root, 'src', 'generated'))).rejects.toThrow();
         });
 
         it('returns 2 for an option it does not know', async () => {
