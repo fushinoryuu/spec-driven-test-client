@@ -76,7 +76,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
 - [x] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up (the script is built and tested; its first live run waits for a deployed stage)
 - [x] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
-- [ ] Backend's planned v1.1.0 (non-breaking) changes and its `v2` specs (added beside `v1`) mapped to their effect on generated clients
+- [x] Backend's planned v1.1.0 (non-breaking) changes and its `v2` specs (added beside `v1`) mapped to their effect on generated clients
 
 ### Phase 2: Generation pipeline
 
