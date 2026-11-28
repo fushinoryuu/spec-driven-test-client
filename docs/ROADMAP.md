@@ -76,7 +76,7 @@ A consuming project points the same tests at an environment with `TEST_ENV=dev` 
 - [ ] Stage manifest and API keys (`tests`, `admin`) available for `dev` and `prod`
     - [x] API keys: the retrieval script exists and the platform stack is deployed to `dev` and `prod` (not run from this repo yet)
     - [ ] Stage manifest with base URLs per stage: waits for the backend's Phase 5 and for a service API kept up on a stage
-- [x] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up (the script is built and tested; its first live run waits for a deployed stage)
+- [x] Stage readiness check across the three services, with a per-version spec check and an opt-in Aurora warm-up (the script is built and tested; its first live run waits for a service API kept up on a stage)
 - [x] Local mocks so library work is never blocked on AWS (request and response behavior only, not the event-driven flows)
 - [x] Backend's planned v1.1.0 (non-breaking) changes and its `v2` specs (added beside `v1`) mapped to their effect on generated clients
 

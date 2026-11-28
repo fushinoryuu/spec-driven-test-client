@@ -21,7 +21,7 @@ The library's promise is that keeping it current is cheap. This phase turns "upd
 | Example consumer                                                                 | `examples/consumer/`                              |
 | Recipe for a project that consumes the package (the backend's Storefront suites) | `docs/backend-setup.md`                           |
 | Spec update runbook                                                              | `docs/updating-specs.md`                          |
-| Demo script                                                                      | `docs/demo-script.md`                             |
+| Demo script (started in Phase 1 with the effect of each change)                  | `docs/demo-script.md`                             |
 
 ## The workflow
 
@@ -84,7 +84,7 @@ The build, the registry choice (decision record 0006), the first release workflo
 
 ### 7. Rehearse the demo
 
-Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. The library side (copy specs, generate, typecheck, publish) needs the specs and the mocks only. Running the Storefront suites against a deployed `dev` stack happens in the backend project, so that part comes after the backend has finished its services:
+Script the full story using the planned spec changes from Phase 1, and run it end to end at least once. The spec of each state is in `demo/specs/`, and `docs/demo-script.md` records what each step does to the generated clients (both from Phase 1). The library side (copy specs, generate, typecheck, publish) needs the specs and the mocks only. Running the Storefront suites against a deployed `dev` stack happens in the backend project, so that part comes after the backend has finished its services:
 
 - [ ] **v1.0.0:** the library is built from the v0 and v1 specs of the three Storefront services (v1.0.0 business specs) and published as 1.0.0, the first release after the `0.x` versions of Phase 3. The example consumer's tests pass against the mocks, and the backend's Storefront suites pass against `dev` using this package.
 - [ ] **v1.1.0 (non-breaking):** apply the backend's planned v1.1.0 changes to the `v1` specs (customers: optional `preferredLanguage`; orders: `GET /v1/orders/{orderId}/timeline` and an optional `notes` field on order creation; shipping: an optional `carrier` filter on the shipment list). Once the backend has deployed them to `dev`, run copy-specs and generate, and see `getOrderTimeline` appear in autocomplete on `ordersService.v1.orders`. Add one test, publish 1.1.0. Time the whole thing.

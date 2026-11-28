@@ -121,6 +121,7 @@ The source is a local checkout of the backend, cloned beside this repository (de
 - [x] Document how to get the keys: run the backend's key retrieval script (`npm run get-api-keys -- --stage <stage>`) after deploy, then set the environment variables the library expects (names are defined in Phase 3, Auth) or store them as CI secrets.
 - [x] Expect keys to change. The `dev` stage is recreated on every backend pull request run, so its keys and base URLs differ each time. Take fresh values from the key retrieval script on every run, and the base URLs from the stage manifest once it exists.
 - [x] Keep keys in an untracked local file, such as `.env`, and make sure it is ignored by git.
+- [ ] Stage manifest with base URLs per stage: published by the backend (its Phase 5), with a service API kept up on a stage. Until then `dev` and `prod` have no URLs in `config/environments.ts`, and Phase 3 moves to the manifest.
 - [x] Only `tests` is needed for most work. Ask for `admin` only when working on the simulation endpoint tests.
 - [x] The flag token is a separate secret. It is a read-only LaunchDarkly REST API token, set by an environment variable the same way, never printed, and never committed. The backend's hand-off doc states which role it needs.
 - [ ] Link to the backend's key rotation runbook.
@@ -153,7 +154,7 @@ The backend's change notes (`docs/spec-change-notes.md` on its `main`) list the 
 
 - The `v0` and `v1` specs of the three services (v0.1.0 drafts or later) are in `specs/`, copied with `npm run copy-specs` from a backend checkout on `main`, and each passes validation.
 - `docs/backend-contract.md` exists, with every gap either closed or raised in the backend project as a bug ticket.
-- The stage readiness check passes its unit tests (all services healthy, unreachable service, version mismatch per version, stage mismatch, warm-up cases). Run by hand against `prod`, and against `dev` while a dev stack is deployed, it passes, and with `--warmup` it reports the Aurora warm-up time.
+- The stage readiness check passes its unit tests (all services healthy, unreachable service, version mismatch per version, stage mismatch, warm-up cases). Run by hand against `prod`, and against `dev` while a dev stack is deployed, it passes, and with `--warmup` it reports the Aurora warm-up time. That live run is not done yet: it waits for a service API kept up on a stage.
 - `npm run mock` starts a mock of each service that serves the example responses of its `v0` and `v1` specs, a smoke test covers `getHealth`, `getVersion` and `listProducts` with no network beyond the loopback address, and `mock/README.md` states the tool, why, and the limits.
 - The effect table has been verified by regenerating with the planned changes.
 
