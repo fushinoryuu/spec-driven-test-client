@@ -26,7 +26,7 @@ npm ci
 | `npm run copy-specs`   | Copies the OpenAPI specs from the sibling service checkouts into `specs/`. See [Copying specs](#copying-specs).                                      |
 | `npm run generate`     | Generates a typed client for every spec in `specs/` into `src/generated/`. See [Generating clients](#generating-clients).                            |
 | `npm run check-stage`  | Checks that a deployed stage is ready: every service is healthy and serves the spec versions in `specs/`. See [Checking a stage](#checking-a-stage). |
-| `npm run mock`         | Starts a mock of each Storefront service from the specs in `specs/`, for work when no stage is deployed. See [Local mocks](#local-mocks).            |
+| `npm run mock`         | Starts a mock of each Storefront service from the specs in `specs/`, for work when no service is deployed. See [Local mocks](#local-mocks).          |
 | `npm run lint`         | Runs ESLint. `src/generated/` is excluded.                                                                                                           |
 | `npm run format:check` | Checks code formatting with Prettier. `src/generated/` is excluded.                                                                                  |
 | `npm run format`       | Rewrites files with Prettier.                                                                                                                        |
@@ -113,7 +113,7 @@ npm run check-stage -- dev --warmup
 
 **Configuration.**
 
-- Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). `local` has the default URLs of the mocks. `dev` and `prod` have no URLs yet, because no stage is deployed. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
+- Base URLs per stage are in [config/environments.ts](config/environments.ts), keyed by service name (`orders-service`). `local` has the default URLs of the mocks. `dev` and `prod` have no URLs yet, because no service API is kept up on either stage. Until the backend publishes its stage manifest, add them there by hand. The `dev` stage is recreated on every backend pull request run, so its URLs change each time.
 - The key for `--warmup` is read from the environment variable `APITEST_<STAGE>_TESTS_API_KEY` (for example `APITEST_DEV_TESTS_API_KEY`), set from the backend's key retrieval script or an untracked `.env` file. The script sends it only to the readiness route and never prints it.
 
 The script uses plain `fetch`. It does not need the generated clients.

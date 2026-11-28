@@ -11,9 +11,10 @@
 // unit test keeps these URLs equal to the ports the mocks use. Run the mocks with `--port` and the
 // URLs below no longer match, so pass the real ones to your code instead.
 //
-// No deployed stage exists yet, so `dev` and `prod` have no URLs. The `dev` stage is deployed and
-// destroyed by every backend pull request run, so its URLs change each time. Take them from the
-// backend's stage manifest when it exists. Never put a key here.
+// No service API is kept up on a stage yet (the backend's platform stack, with the keys, is deployed
+// to `dev` and `prod`), so `dev` and `prod` have no URLs. The `dev` stage is deployed and destroyed by
+// every backend pull request run, so its URLs change each time. Take them from the backend's stage
+// manifest when it exists. Never put a key here.
 
 export const STAGES = ['dev', 'prod', 'local'] as const;
 
